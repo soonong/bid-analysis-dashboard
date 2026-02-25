@@ -1,444 +1,362 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html class="dark" lang="ko">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>입찰 분석 조건 설정 마법사</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"
-        rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-        rel="stylesheet" />
-    <script>
-        tailwind.config = {
-            darkMode: "class",
-            theme: { extend: { colors: { "primary": "#137fec" }, fontFamily: { display: ["Inter", "Noto Sans KR", "sans-serif"] } } }
-        }
-    </script>
-    <style>
-        body {
-            font-family: 'Inter', 'Noto Sans KR', sans-serif;
-        }
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>통합 입찰 분석 조건 설정 위저드</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: { extend: { colors: { "primary": "#137fec", "background-dark": "#101922", "surface-dark": "#1a232e" }, fontFamily: { display: ["Inter", "sans-serif"] } } }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
 
-        .bubble-shadow {
-            box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
+    .bubble-in {
+      animation: fadeSlideUp .35s cubic-bezier(.22, .61, .36, 1) forwards;
+    }
 
-        .chip {
-            padding: 0.4rem 1rem;
-            border-radius: 9999px;
-            border: 1px solid #e2e8f0;
-            background: #fff;
-            color: #475569;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all .2s;
-        }
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(14px)
+      }
 
-        .chip:hover {
-            border-color: #93c5fd;
-        }
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
 
-        .chip.active {
-            background: #137fec;
-            color: #fff;
-            border-color: #137fec;
-            font-weight: 700;
-            box-shadow: 0 4px 12px rgba(19, 127, 236, 0.25);
-        }
+    .typing span {
+      width: 7px;
+      height: 7px;
+      background: #137fec;
+      border-radius: 50%;
+      display: inline-block;
+      animation: dot 1.3s infinite;
+    }
 
-        .dark .chip {
-            background: #1e293b;
-            color: #94a3b8;
-            border-color: #334155;
-        }
+    .typing span:nth-child(2) {
+      animation-delay: .2s
+    }
 
-        .dark .chip.active {
-            background: #137fec;
-            color: #fff;
-            border-color: #137fec;
-        }
+    .typing span:nth-child(3) {
+      animation-delay: .4s
+    }
 
-        .section-card {
-            background: rgba(255, 255, 255, 0.6);
-            border: 1px solid #f1f5f9;
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            backdrop-filter: blur(4px);
-        }
+    @keyframes dot {
 
-        .dark .section-card {
-            background: rgba(30, 41, 59, 0.5);
-            border-color: #1e293b;
-        }
+      0%,
+      80%,
+      100% {
+        transform: translateY(0)
+      }
 
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(16px)
-            }
+      40% {
+        transform: translateY(-7px)
+      }
+    }
 
-            to {
-                opacity: 1;
-                transform: translateY(0)
-            }
-        }
+    .msg-chip {
+      padding: .4rem 1.1rem;
+      border-radius: 9999px;
+      border: 1.5px solid #3b4754;
+      background: #1a232e;
+      color: #9dabb9;
+      font-size: .875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .18s;
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+    }
 
-        .fade-in {
-            animation: fadeInUp .4s ease forwards;
-        }
+    .msg-chip:hover {
+      border-color: #137fec;
+      color: #fff;
+    }
 
-        .thinking {
-            display: inline-flex;
-            gap: 4px;
-            align-items: center;
-            padding: 0.75rem 1rem;
-        }
+    .msg-chip.active {
+      background: #137fec;
+      border-color: #137fec;
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(19, 127, 236, .3);
+    }
 
-        .thinking span {
-            width: 8px;
-            height: 8px;
-            background: #137fec;
-            border-radius: 50%;
-            animation: bounce 1.2s infinite;
-        }
+    .answer-bubble {
+      background: #1a232e;
+      border: 1.5px solid #283039;
+      border-radius: 1.25rem 1.25rem 1.25rem .25rem;
+      padding: 1rem 1.25rem;
+      display: inline-block;
+      max-width: 480px;
+    }
 
-        .thinking span:nth-child(2) {
-            animation-delay: .2s;
-        }
-
-        .thinking span:nth-child(3) {
-            animation-delay: .4s;
-        }
-
-        @keyframes bounce {
-
-            0%,
-            80%,
-            100% {
-                transform: translateY(0)
-            }
-
-            40% {
-                transform: translateY(-8px)
-            }
-        }
-    </style>
+    .user-bubble {
+      background: #137fec;
+      border-radius: 1.25rem 1.25rem .25rem 1.25rem;
+      padding: .75rem 1.1rem;
+      display: inline-block;
+      font-size: .9rem;
+      color: #fff;
+      font-weight: 600;
+      max-width: 380px;
+    }
+  </style>
 </head>
 
-<body class="bg-slate-50 dark:bg-slate-900 min-h-screen">
+<body class="bg-background-dark min-h-screen flex flex-col overflow-hidden" style="height:100dvh;">
 
-    <header
-        class="sticky top-0 z-50 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6 md:px-16 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
-        <div class="flex items-center gap-3">
-            <div
-                class="size-9 flex items-center justify-center bg-primary rounded-lg text-white shadow-md shadow-primary/20">
-                <span class="material-symbols-outlined text-2xl">insights</span>
-            </div>
-            <div>
-                <h1 class="text-lg font-bold text-slate-900 dark:text-white">AI 입찰 분석 마법사</h1>
-                <p class="text-xs text-slate-500">조건 선택 → 대시보드 자동 적용</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-3">
-            <a href="index.html"
-                class="flex items-center gap-2 px-4 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-                대시보드
-            </a>
-        </div>
-    </header>
-
-    <main class="max-w-3xl mx-auto px-4 py-10 space-y-8" id="chatArea">
-
-        <!-- Step 1: 종목 선택 -->
-        <section class="space-y-4 fade-in" id="step1">
-            <div class="flex items-start gap-3">
-                <div
-                    class="size-10 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
-                    <span class="material-symbols-outlined text-white text-xl">smart_toy</span>
-                </div>
-                <div
-                    class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none bubble-shadow border border-slate-100 dark:border-slate-700 max-w-md">
-                    <p class="text-base font-medium text-slate-800 dark:text-slate-200 leading-relaxed">안녕하세요! 👋<br>분석할
-                        <strong>종목</strong>을 선택해 주세요.</p>
-                    <p class="text-xs text-slate-400 mt-1">실제 데이터의 종목 기준으로 필터링됩니다.</p>
-                </div>
-            </div>
-            <div class="ml-12 section-card">
-                <label class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-3">
-                    <span class="material-symbols-outlined text-base">category</span> 종목 선택 (복수 가능)
-                </label>
-                <div class="flex flex-wrap gap-2" id="catChips"></div>
-                <div class="mt-4 flex items-center gap-3">
-                    <button onclick="confirmStep(1)"
-                        class="px-8 py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold text-sm hover:opacity-90 transition-all">
-                        선택 완료 →
-                    </button>
-                    <button onclick="skipStep(1)"
-                        class="text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1">
-                        건너뛰기 <span class="material-symbols-outlined text-sm">chevron_right</span>
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Step 2: 지역 선택 (동적 추가) -->
-        <!-- Step 3: 발주처 선택 -->
-        <!-- Step 4: 금액 범위 -->
-        <!-- Step 5: 계약방법 -->
-
-    </main>
-
-    <!-- Sticky Bottom CTA -->
-    <div id="bottomCTA"
-        class="fixed bottom-0 left-0 right-0 p-5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-50 hidden">
-        <div class="max-w-3xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-            <div>
-                <p class="text-sm font-semibold text-slate-900 dark:text-white">분석 준비 완료!</p>
-                <p class="text-xs text-slate-500" id="selectedSummary"></p>
-            </div>
-            <button onclick="goToDashboard()"
-                class="w-full md:w-auto flex items-center justify-center gap-3 px-12 py-4 bg-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                <span class="material-symbols-outlined">analytics</span>
-                분석 리포트 보기
-            </button>
-        </div>
+  <!-- Header -->
+  <header
+    class="flex-none flex items-center justify-between border-b border-[#283039] bg-[#101922]/90 backdrop-blur px-6 py-3 z-10">
+    <div class="flex items-center gap-3">
+      <div class="size-9 flex items-center justify-center bg-primary rounded-xl text-white shadow-lg shadow-primary/20">
+        <span class="material-symbols-outlined text-2xl">smart_toy</span>
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-white leading-tight">AI 입찰 분석 마법사</h1>
+        <p class="text-xs text-[#9dabb9]">조건을 선택하면 대시보드에 자동 적용됩니다</p>
+      </div>
     </div>
+    <div class="flex items-center gap-3">
+      <button onclick="resetWizard()"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[#9dabb9] hover:text-white hover:bg-[#283039] text-sm transition-all">
+        <span class="material-symbols-outlined text-[18px]">restart_alt</span>다시 시작
+      </button>
+      <a href="index.html"
+        class="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#1a232e] border border-[#283039] text-[#9dabb9] hover:text-white text-sm font-medium transition-all">
+        <span class="material-symbols-outlined text-[18px]">arrow_back</span>대시보드
+      </a>
+    </div>
+  </header>
 
-    <script src="data.js"></script>
-    <script>
-        // ──── 실제 데이터에서 고유값 추출 ────
-        const uniqCategories = [...new Set(RAW_DATA.map(r => {
-            const v = r.종목 || '';
-            return v.split(/[\/,(]/)[0].trim();
-        }).filter(Boolean))].sort();
+  <!-- Chat area -->
+  <div class="flex-1 overflow-y-auto px-4 py-6 space-y-6" id="chatArea"
+    style="scrollbar-width:thin;scrollbar-color:#374151 transparent">
+  </div>
 
-        const uniqRegions = [...new Set(RAW_DATA.flatMap(r => {
-            return (r.지역제한 || '').split('/').map(v => v.trim()).filter(Boolean);
-        }))].sort();
+  <!-- Input area (hidden until needed) -->
+  <div class="flex-none p-4 border-t border-[#283039] bg-[#101922]/90 backdrop-blur hidden" id="inputArea">
+    <div class="max-w-2xl mx-auto flex gap-3">
+      <input id="userInput"
+        class="flex-1 bg-[#1a232e] border border-[#3b4754] rounded-xl px-4 py-3 text-sm text-white placeholder:text-[#5e6c7c] focus:outline-none focus:border-primary"
+        placeholder="직접 입력하세요..." />
+      <button onclick="submitInput()"
+        class="px-5 py-3 bg-primary rounded-xl text-white font-bold hover:bg-primary/90 transition-all">
+        <span class="material-symbols-outlined">send</span>
+      </button>
+    </div>
+  </div>
 
-        const uniqClients = [...new Set(RAW_DATA.map(r => extractClient(r.적격평가세부기준)))].sort();
+  <!-- CTA Bar -->
+  <div class="flex-none p-4 border-t border-[#283039] bg-[#101922]/90 backdrop-blur hidden" id="ctaBar">
+    <div class="max-w-2xl mx-auto flex items-center justify-between gap-4">
+      <div>
+        <p class="text-sm font-semibold text-white">분석 조건 설정 완료!</p>
+        <p class="text-xs text-[#9dabb9]" id="ctaSummary"></p>
+      </div>
+      <button onclick="goToDashboard()"
+        class="flex items-center gap-2 px-8 py-3 bg-primary text-white rounded-xl font-bold text-base shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all">
+        <span class="material-symbols-outlined">analytics</span>분석 리포트 보기
+      </button>
+    </div>
+  </div>
 
-        const AMOUNT_RANGES = [
-            { label: '5천만 이하', max: 50000000 },
-            { label: '1억 이하', max: 100000000 },
-            { label: '3억 이하', max: 300000000 },
-            { label: '5억 이하', max: 500000000 },
-            { label: '10억 이하', max: 1000000000 },
-            { label: '10억 초과', max: Infinity },
-        ];
+  <script src="data.js"></script>
+  <script>
+    // ─── Data from real Excel ───
+    const CATS = [...new Set(RAW_DATA.map(r => (r.종목 || '').split(/[\/,(]/)[0].trim()).filter(Boolean))].sort();
+    const REGS = [...new Set(RAW_DATA.flatMap(r => (r.지역제한 || '').split('/').map(v => v.trim()).filter(Boolean)))].sort();
+    const CLIENTS = [...new Set(RAW_DATA.map(r => extractClient(r.적격평가세부기준)))].sort();
+    const CONTRACTS = ['적격심사', '수의', '전체'];
+    const AMT_RANGES = [{ l: '5천만 이하', max: 50000000 }, { l: '1억 이하', max: 100000000 }, { l: '3억 이하', max: 300000000 }, { l: '5억 이하', max: 500000000 }, { l: '10억 이하', max: 1000000000 }, { l: '10억 초과', max: Infinity }];
 
-        // ──── State ────
-        const selections = { categories: [], regions: [], clients: [], amtRange: null, contractMethod: null };
-        let stepsCompleted = 0;
+    // ─── Wizard steps ───
+    const STEPS = [
+      { id: 'cat', q: '안녕하세요! 👋\n분석하실 <b>종목</b>을 선택해 주세요.', sub: '복수 선택 가능합니다.', type: 'multi', opts: CATS, key: 'cats' },
+      { id: 'reg', q: '<b>지역</b>을 선택해 주세요.', sub: '복수 선택 가능합니다.', type: 'multi', opts: REGS, key: 'regs' },
+      { id: 'client', q: '<b>발주처</b>를 선택해 주세요.', sub: '해당 없으면 건너뛰기', type: 'multi', opts: CLIENTS, key: 'clients' },
+      { id: 'amt', q: '추정금액 <b>범위</b>를 선택해 주세요.', sub: '하나만 선택 가능합니다.', type: 'single', opts: AMT_RANGES.map(r => r.l), key: 'amt' },
+      { id: 'cont', q: '<b>계약 방법</b>을 선택해 주세요.', sub: '하나만 선택 가능합니다.', type: 'single', opts: CONTRACTS, key: 'contract' },
+    ];
 
-        // ──── Step 1: 종목 chips ────
-        document.getElementById('catChips').innerHTML = uniqCategories.map(c =>
-            `<button class="chip" onclick="toggleChip(this,'categories','${c}')">${c}</button>`
-        ).join('');
+    let stepIdx = 0;
+    const answers = {};
 
-        // ──── Chip toggle ────
-        function toggleChip(btn, key, val) {
-            if (selections[key].includes(val)) {
-                selections[key] = selections[key].filter(v => v !== val);
-                btn.classList.remove('active');
-            } else {
-                selections[key].push(val);
-                btn.classList.add('active');
-            }
-        }
-
-        function setChipSingle(btn, key, val) {
-            selections[key] = [val];
-            document.querySelectorAll(`[data-group="${key}"]`).forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-        }
-
-        // ──── Step builder ────
-        function confirmStep(step) {
-            stepsCompleted = Math.max(stepsCompleted, step);
-            addThinkingBubble(() => {
-                if (step === 1) addStep2();
-                else if (step === 2) addStep3();
-                else if (step === 3) addStep4();
-                else if (step === 4) addStep5();
-                else if (step === 5) showCTA();
-            });
-        }
-
-        function skipStep(step) {
-            confirmStep(step);
-        }
-
-        function addThinkingBubble(callback) {
-            const id = 'thinking_' + Date.now();
-            const div = document.createElement('div');
-            div.id = id;
-            div.className = 'flex items-start gap-3 fade-in';
+    function addMsg(html, fromUser = false, delay = 0) {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          const div = document.createElement('div');
+          if (!fromUser) {
+            div.className = 'flex items-start gap-3 max-w-2xl mx-auto w-full bubble-in';
             div.innerHTML = `
-    <div class="size-10 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
-      <span class="material-symbols-outlined text-white text-xl">smart_toy</span>
-    </div>
-    <div class="bg-white dark:bg-slate-800 rounded-2xl rounded-tl-none bubble-shadow border border-slate-100 dark:border-slate-700">
-      <div class="thinking"><span></span><span></span><span></span></div>
-    </div>`;
-            document.getElementById('chatArea').appendChild(div);
-            div.scrollIntoView({ behavior: 'smooth', block: 'end' });
-            setTimeout(() => {
-                document.getElementById(id).remove();
-                callback();
-            }, 900);
-        }
+                    <div class="size-9 rounded-xl bg-primary/20 flex items-center justify-center shrink-0 text-primary">
+                        <span class="material-symbols-outlined text-xl">smart_toy</span>
+                    </div>
+                    <div class="answer-bubble text-white text-sm leading-relaxed">${html}</div>`;
+          } else {
+            div.className = 'flex justify-end max-w-2xl mx-auto w-full bubble-in';
+            div.innerHTML = `<div class="user-bubble">${html}</div>`;
+          }
+          document.getElementById('chatArea').appendChild(div);
+          div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          resolve(div);
+        }, delay);
+      });
+    }
 
-        function addSection(html) {
-            const div = document.createElement('div');
-            div.className = 'fade-in';
-            div.innerHTML = html;
-            document.getElementById('chatArea').appendChild(div);
-            setTimeout(() => div.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
-        }
+    function addTyping() {
+      const div = document.createElement('div');
+      div.id = 'typing';
+      div.className = 'flex items-start gap-3 max-w-2xl mx-auto w-full bubble-in';
+      div.innerHTML = `
+        <div class="size-9 rounded-xl bg-primary/20 flex items-center justify-center shrink-0 text-primary">
+            <span class="material-symbols-outlined text-xl">smart_toy</span>
+        </div>
+        <div class="answer-bubble"><div class="typing flex gap-2 py-1"><span></span><span></span><span></span></div></div>`;
+      document.getElementById('chatArea').appendChild(div);
+      div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
 
-        // ──── Step 2: 지역 ────
-        function addStep2() {
-            addSection(`
-  <section class="space-y-4" id="step2">
-    <div class="flex items-start gap-3">
-      <div class="size-10 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
-        <span class="material-symbols-outlined text-white text-xl">smart_toy</span>
-      </div>
-      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none bubble-shadow border border-slate-100 dark:border-slate-700 max-w-md">
-        <p class="text-base font-medium text-slate-800 dark:text-slate-200">분석할 <strong>지역</strong>을 선택해 주세요.</p>
-      </div>
-    </div>
-    <div class="ml-12 section-card">
-      <label class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-3">
-        <span class="material-symbols-outlined text-base">location_on</span> 지역 선택 (복수 가능)
-      </label>
-      <div class="flex flex-wrap gap-2">
-        ${uniqRegions.map(r => `<button class="chip" onclick="toggleChip(this,'regions','${r}')">${r}</button>`).join('')}
-      </div>
-      <div class="mt-4 flex items-center gap-3">
-        <button onclick="confirmStep(2)" class="px-8 py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold text-sm hover:opacity-90">선택 완료 →</button>
-        <button onclick="skipStep(2)" class="text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1">건너뛰기 <span class="material-symbols-outlined text-sm">chevron_right</span></button>
-      </div>
-    </div>
-  </section>`);
-        }
+    function removeTyping() {
+      const t = document.getElementById('typing');
+      if (t) t.remove();
+    }
 
-        // ──── Step 3: 발주처 ────
-        function addStep3() {
-            addSection(`
-  <section class="space-y-4" id="step3">
-    <div class="flex items-start gap-3">
-      <div class="size-10 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
-        <span class="material-symbols-outlined text-white text-xl">smart_toy</span>
-      </div>
-      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none bubble-shadow border border-slate-100 dark:border-slate-700 max-w-md">
-        <p class="text-base font-medium text-slate-800 dark:text-slate-200"><strong>발주처</strong>는 어디로 할까요?</p>
-      </div>
-    </div>
-    <div class="ml-12 section-card">
-      <div class="flex flex-wrap gap-2">
-        ${uniqClients.map(c => `<button class="chip" onclick="toggleChip(this,'clients','${c}')">${c}</button>`).join('')}
-      </div>
-      <div class="mt-4 flex items-center gap-3">
-        <button onclick="confirmStep(3)" class="px-8 py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold text-sm hover:opacity-90">선택 완료 →</button>
-        <button onclick="skipStep(3)" class="text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1">건너뛰기 <span class="material-symbols-outlined text-sm">chevron_right</span></button>
-      </div>
-    </div>
-  </section>`);
-        }
+    function addChips(step) {
+      const div = document.createElement('div');
+      div.id = 'chips-' + step.id;
+      div.className = 'max-w-2xl mx-auto w-full pl-12 bubble-in';
+      div.innerHTML = `
+        <div class="flex flex-wrap gap-2 mb-4" id="chipWrap-${step.id}">
+            ${step.opts.map(o => `<button class="msg-chip" onclick="toggleChip('${step.id}','${o}',this)">${o}</button>`).join('')}
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="confirmStep('${step.id}')" class="px-6 py-2 bg-primary rounded-xl text-white font-bold text-sm hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all">선택 완료 →</button>
+            <button onclick="skipStep()" class="text-sm text-[#9dabb9] hover:text-white transition-colors flex items-center gap-1">건너뛰기 <span class="material-symbols-outlined text-sm">chevron_right</span></button>
+        </div>`;
+      document.getElementById('chatArea').appendChild(div);
+      div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
 
-        // ──── Step 4: 금액 범위 ────
-        function addStep4() {
-            addSection(`
-  <section class="space-y-4" id="step4">
-    <div class="flex items-start gap-3">
-      <div class="size-10 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
-        <span class="material-symbols-outlined text-white text-xl">smart_toy</span>
-      </div>
-      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none bubble-shadow border border-slate-100 dark:border-slate-700 max-w-md">
-        <p class="text-base font-medium text-slate-800 dark:text-slate-200"><strong>추정금액 범위</strong>를 선택해 주세요.</p>
-      </div>
-    </div>
-    <div class="ml-12 section-card">
-      <div class="flex flex-wrap gap-2">
-        ${AMOUNT_RANGES.map((r, i) => `<button class="chip" data-group="amtRange" onclick="selections.amtRange=${JSON.stringify(r)};document.querySelectorAll('[data-group=amtRange]').forEach(b=>b.classList.remove('active'));this.classList.add('active')">${r.label}</button>`).join('')}
-      </div>
-      <div class="mt-4 flex items-center gap-3">
-        <button onclick="confirmStep(4)" class="px-8 py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold text-sm hover:opacity-90">선택 완료 →</button>
-        <button onclick="skipStep(4)" class="text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1">건너뛰기 <span class="material-symbols-outlined text-sm">chevron_right</span></button>
-      </div>
-    </div>
-  </section>`);
-        }
+    function toggleChip(stepId, val, btn) {
+      const step = STEPS[stepIdx];
+      if (step.type === 'single') {
+        document.querySelectorAll(`#chipWrap-${stepId} .msg-chip`).forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        answers[step.key] = [val];
+      } else {
+        btn.classList.toggle('active');
+        if (!answers[step.key]) answers[step.key] = [];
+        const idx = answers[step.key].indexOf(val);
+        if (idx >= 0) answers[step.key].splice(idx, 1); else answers[step.key].push(val);
+      }
+    }
 
-        // ──── Step 5: 계약방법 ────
-        function addStep5() {
-            addSection(`
-  <section class="space-y-4" id="step5">
-    <div class="flex items-start gap-3">
-      <div class="size-10 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
-        <span class="material-symbols-outlined text-white text-xl">smart_toy</span>
-      </div>
-      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none bubble-shadow border border-slate-100 dark:border-slate-700 max-w-md">
-        <p class="text-base font-medium text-slate-800 dark:text-slate-200">마지막으로 <strong>계약 방법</strong>을 선택해 주세요.</p>
-      </div>
-    </div>
-    <div class="ml-12 section-card">
-      <div class="flex flex-wrap gap-2">
-        ${['적격심사', '수의', '전체'].map(m => `<button class="chip ${m === '전체' ? 'active' : ''}" data-group="contract" onclick="selections.contractMethod='${m === '전체' ? null : m}';document.querySelectorAll('[data-group=contract]').forEach(b=>b.classList.remove('active'));this.classList.add('active')">${m}</button>`).join('')}
-      </div>
-      <div class="mt-4">
-        <button onclick="confirmStep(5)" class="px-8 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:opacity-90 shadow-lg shadow-primary/20">완료 – 분석 보기 →</button>
-      </div>
-    </div>
-  </section>`);
-        }
+    async function confirmStep(stepId) {
+      const step = STEPS[stepIdx];
+      const sel = answers[step.key] || [];
+      const label = sel.length ? sel.join(', ') : '전체';
 
-        // ──── Show CTA ────
-        function showCTA() {
-            // 결과 미리보기
-            const filters = {
-                categories: selections.categories,
-                regions: selections.regions,
-                contractMethod: selections.contractMethod,
-                maxAmt: selections.amtRange?.max === Infinity ? null : selections.amtRange?.max,
-            };
-            const result = filterData(RAW_DATA, filters);
+      // 유저 답변 버블
+      await addMsg(label, true);
 
-            addSection(`
-  <section class="fade-in">
-    <div class="flex items-start gap-3">
-      <div class="size-10 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
-        <span class="material-symbols-outlined text-white text-xl">smart_toy</span>
-      </div>
-      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none bubble-shadow border border-slate-100 dark:border-slate-700 max-w-md">
-        <p class="text-base font-medium text-slate-800 dark:text-slate-200">설정 완료! 총 <strong class="text-primary">${result.length}건</strong>의 공고가 해당됩니다.<br>대시보드에서 상세 분석 결과를 확인하세요.</p>
-      </div>
-    </div>
-  </section>`);
+      // 칩 영역 잠금
+      const chipDiv = document.getElementById('chips-' + stepId);
+      if (chipDiv) {
+        chipDiv.querySelectorAll('button').forEach(b => b.disabled = true);
+        chipDiv.querySelectorAll('button:not(.active)').forEach(b => b.style.opacity = '0.3');
+        chipDiv.querySelector('[onclick^="confirmStep"]')?.remove();
+        chipDiv.querySelector('[onclick^="skipStep"]')?.remove();
+      }
 
-            document.getElementById('selectedSummary').textContent =
-                `종목: ${selections.categories.join(',') || '전체'} / 지역: ${selections.regions.join(',') || '전체'} / ${result.length}건 해당`;
-            document.getElementById('bottomCTA').classList.remove('hidden');
-            setTimeout(() => document.getElementById('bottomCTA').scrollIntoView({ behavior: 'smooth', block: 'end' }), 200);
-        }
+      await nextStep();
+    }
 
-        // ──── Go to dashboard with filters ────
-        function goToDashboard() {
-            const params = new URLSearchParams();
-            if (selections.categories.length) params.set('cats', selections.categories.join(','));
-            if (selections.regions.length) params.set('regs', selections.regions.join(','));
-            if (selections.contractMethod) params.set('contract', selections.contractMethod);
-            if (selections.amtRange?.max && selections.amtRange.max !== Infinity) params.set('maxAmt', selections.amtRange.max);
-            window.location.href = 'index.html?' + params.toString();
-        }
-    </script>
+    async function skipStep() {
+      await addMsg('건너뛰기', true);
+      await nextStep();
+    }
+
+    async function nextStep() {
+      stepIdx++;
+      if (stepIdx >= STEPS.length) {
+        await showResult();
+        return;
+      }
+      addTyping();
+      await new Promise(r => setTimeout(r, 800));
+      removeTyping();
+      const step = STEPS[stepIdx];
+      const lines = step.q.split('\n');
+      await addMsg(`<p class="font-medium">${lines[0]}</p>${lines[1] ? `<p class="text-[#9dabb9] text-xs mt-1">${lines[1]}</p>` : ''}<p class="text-[#9dabb9] text-xs mt-1">${step.sub}</p>`);
+      addChips(step);
+    }
+
+    async function showResult() {
+      addTyping();
+      await new Promise(r => setTimeout(r, 900));
+      removeTyping();
+
+      const filters = {
+        regions: answers.regs || [],
+        categories: answers.cats || [],
+        clients: answers.clients || [],
+      };
+      const result = filterData(RAW_DATA, filters);
+      await addMsg(`설정 완료! 총 <strong class="text-primary">${result.length}건</strong>의 공고가 조건에 해당합니다.<br><span class="text-[#9dabb9] text-xs">대시보드에서 상세 분석 결과를 확인하세요.</span>`);
+
+      const summary = [
+        answers.cats?.length ? '종목: ' + answers.cats.join(', ') : '종목: 전체',
+        answers.regs?.length ? '지역: ' + answers.regs.join(', ') : '지역: 전국',
+        answers.contract?.[0] ? '계약: ' + answers.contract[0] : '',
+      ].filter(Boolean).join(' / ');
+      document.getElementById('ctaSummary').textContent = summary + ` / ${result.length}건`;
+      document.getElementById('ctaBar').classList.remove('hidden');
+    }
+
+    function goToDashboard() {
+      const p = new URLSearchParams();
+      if (answers.cats?.length) p.set('cats', answers.cats.join(','));
+      if (answers.regs?.length) p.set('regs', answers.regs.join(','));
+      if (answers.clients?.length) p.set('clients', answers.clients.join(','));
+      if (answers.contract?.[0] && answers.contract[0] !== '전체') p.set('contract', answers.contract[0]);
+      if (answers.amt?.[0]) {
+        const r = AMT_RANGES.find(r => r.l === answers.amt[0]);
+        if (r && r.max !== Infinity) p.set('maxAmt', r.max);
+      }
+      window.location.href = 'index.html?' + p.toString();
+    }
+
+    function resetWizard() {
+      stepIdx = 0;
+      Object.keys(answers).forEach(k => delete answers[k]);
+      document.getElementById('chatArea').innerHTML = '';
+      document.getElementById('ctaBar').classList.add('hidden');
+      startWizard();
+    }
+
+    async function startWizard() {
+      const step = STEPS[0];
+      await addMsg(`안녕하세요! 👋<br>분석하실 <b>${step.opts.slice(0, 3).join(', ')} 등</b>의 종목 중<br><b>관심 종목</b>을 선택해 주세요.<br><span class="text-[#9dabb9] text-xs">${step.sub}</span>`, false, 0);
+      setTimeout(() => addChips(step), 200);
+    }
+
+    startWizard();
+  </script>
 </body>
 
 </html>
