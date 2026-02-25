@@ -309,7 +309,7 @@
                         </div>
 
                         <!-- Bottom Charts -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <!-- Top 5 by Electric -->
                             <div class="rounded-xl border border-[#3b4754] bg-surface-dark p-6 shadow-sm">
                                 <div class="flex items-center justify-between mb-6">
@@ -335,6 +335,46 @@
                                             class="material-symbols-outlined text-[20px]">more_horiz</span></button>
                                 </div>
                                 <div class="space-y-4" id="topClientChart"></div>
+                            </div>
+                        </div>
+
+                        <!-- Data Table -->
+                        <div class="rounded-xl border border-[#3b4754] bg-surface-dark shadow-sm">
+                            <div class="flex items-center justify-between gap-4 border-b border-[#3b4754] px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="bg-primary/20 p-2 rounded-lg text-primary">
+                                        <span class="material-symbols-outlined">table_view</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-bold text-white">공고 상세 목록</h3>
+                                        <p class="text-xs text-[#9dabb9] mt-0.5">선택된 조건에 해당하는 개별 공고 내역</p>
+                                    </div>
+                                </div>
+                                <button onclick="exportToCSV()"
+                                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#3b4754] bg-[#283039] text-xs font-bold text-[#9dabb9] hover:text-white hover:bg-[#3b4754] transition-all">
+                                    <span class="material-symbols-outlined text-[16px]">download</span>엑셀 저장
+                                </button>
+                            </div>
+                            <div class="overflow-x-auto custom-scrollbar">
+                                <table class="w-full text-left border-collapse" style="min-width: 800px;">
+                                    <thead>
+                                        <tr class="text-xs text-[#9dabb9] border-b border-[#3b4754]">
+                                            <th class="px-6 py-3 font-medium whitespace-nowrap">공고번호</th>
+                                            <th class="px-6 py-3 font-medium whitespace-nowrap">지역</th>
+                                            <th class="px-6 py-3 font-medium whitespace-nowrap">종목</th>
+                                            <th class="px-6 py-3 font-medium whitespace-nowrap text-right">추정가격</th>
+                                            <th class="px-6 py-3 font-medium whitespace-nowrap">발주처</th>
+                                            <th class="px-6 py-3 font-medium whitespace-nowrap">입력일</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dataTableBody"
+                                        class="text-sm text-slate-300 divide-y divide-[#3b4754] hover:divide-[#4b5563]">
+                                        <!-- Rows injected by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="dataTablePagination" class="px-6 py-3 border-t border-[#3b4754] flex justify-center">
+                                <span class="text-xs text-[#9dabb9]" id="dataTableInfo"></span>
                             </div>
                         </div>
 
@@ -533,6 +573,32 @@
         </div>
     </div>
 
+    <!-- ────────── DETAIL MODAL ────────── -->
+    <div id="detailModal"
+        class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden items-center justify-center p-4">
+        <div
+            class="bg-surface-dark border border-[#3b4754] w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-[#3b4754]">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">description</span>공고 상세 정보
+                </h3>
+                <button onclick="closeDetailModal()"
+                    class="size-8 flex items-center justify-center rounded-lg hover:bg-[#283039] text-[#9dabb9] transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto custom-scrollbar space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="detailContent">
+                    <!-- Detail items injected -->
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-[#3b4754] bg-surface-darker/30 flex justify-end">
+                <button onclick="closeDetailModal()"
+                    class="px-5 py-2 rounded-lg bg-[#283039] text-white text-sm font-bold hover:bg-[#3b4754] transition-all">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <script src="data.js"></script>
     <script>
         // ─── State ───
@@ -593,7 +659,7 @@
             },
         };
 
-        const HEATMAP_REGIONS = ['서울', '경기', '인천', '충남', '경북', '전남', '부산', '전국'];
+        const HEATMAP_REGIONS = ['서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종', '경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주', '전국'];
         const HEATMAP_CATS = ['전기', '토목', '건축', '통신', '소방', '조경', '용역', '물품', '산업환경'];
 
         // ─── 광역시도 → 시군구 매핑 ───
@@ -641,7 +707,8 @@
             const params = new URLSearchParams(window.location.search);
             if (params.get('cats')) currentFilters.categories = params.get('cats').split(',');
             if (params.get('regs')) currentFilters.regions = params.get('regs').split(',');
-            if (params.get('contract')) currentFilters.contract = params.get('contract');
+            if (params.get('clients')) currentFilters.clients = params.get('clients').split(',');
+            if (params.get('contract')) currentFilters.contractMethod = params.get('contract');
             if (params.get('maxAmt')) currentFilters.maxAmt = parseInt(params.get('maxAmt'));
 
             document.getElementById('updateTime').textContent = '업데이트 시간: 2025-01-03 기준';
@@ -665,11 +732,38 @@
                 const m = parseInt(currentFilters.period);
                 if (m <= 12) data = data.filter(r => new Date(r.입력일).getMonth() + 1 === m);
             }
-            data = filterData(data, currentFilters);
+
+            // 금액 범위 필터 처리
+            const filters = JSON.parse(JSON.stringify(currentFilters));
+            if (filters.amtRange && filters.amtRange.length > 0) {
+                const AMT_MAP = {
+                    '10억 미만': { min: 0, max: 1e9 },
+                    '10억~50억': { min: 1e9, max: 5e9 },
+                    '50억~100억': { min: 5e9, max: 1e10 },
+                    '100억~300억': { min: 1e10, max: 3e10 },
+                    '300억~500억': { min: 3e10, max: 5e10 },
+                    '500억~1,000억': { min: 5e10, max: 1e11 },
+                    '1,000억 이상': { min: 1e11, max: Infinity }
+                };
+                let finalMin = Infinity;
+                let finalMax = -Infinity;
+                filters.amtRange.forEach(r => {
+                    const range = AMT_MAP[r];
+                    if (range) {
+                        if (range.min < finalMin) finalMin = range.min;
+                        if (range.max > finalMax) finalMax = range.max;
+                    }
+                });
+                if (finalMin !== Infinity) filters.minAmt = finalMin;
+                if (finalMax !== -Infinity) filters.maxAmt = finalMax;
+            }
+
+            data = filterData(data, filters);
             renderKPI(data);
             renderTrend(data);
             renderHeatmap(data);
             renderTopCharts(data);
+            renderDataTable(data);
             updateFilterLabels();
         }
 
@@ -737,8 +831,9 @@
             HEATMAP_REGIONS.forEach(r => { matrix[r] = {}; HEATMAP_CATS.forEach(c => matrix[r][c] = { cnt: 0, amt: 0 }); });
 
             const RMAP = {
-                '서울': ['서울'], '경기': ['경기', '광명', '부천', '시흥', '고양'], '인천': ['인천'],
-                '충남': ['충남'], '경북': ['경북', '울진'], '전남': ['전남'], '부산': ['부산'], '전국': ['전국']
+                '서울': ['서울'], '부산': ['부산'], '대구': ['대구'], '인천': ['인천'], '광주': ['광주'], '대전': ['대전'], '울산': ['울산'], '세종': ['세종'],
+                '경기': ['경기', '광명', '부천', '시흥', '고양'], '강원': ['강원'], '충북': ['충북'], '충남': ['충남'],
+                '전북': ['전북'], '전남': ['전남', '전국/전남'], '경북': ['경북', '울진', '전국/대구/경북'], '경남': ['경남'], '제주': ['제주'], '전국': ['전국']
             };
             const CMAP = {
                 '전기': ['전기'], '토목': ['토목', '토건', '지반조성포장'], '건축': ['건축', '실내건축', '철콘', '비계구조'],
@@ -1234,7 +1329,7 @@
         }
 
         function resetFilters() {
-            tempFilters = { regions: [], categories: [], clients: [], specialOnly: false };
+            tempFilters = { regions: [], categories: [], clients: [], specialOnly: false, amtRange: [] };
             selectedParentRegion = null;
             renderFilterChips();
         }
@@ -1243,10 +1338,14 @@
             const r = currentFilters.regions;
             const c = currentFilters.categories;
             const cl = currentFilters.clients;
-            document.getElementById('filterRegionLabel').textContent = r && r.length ? r.slice(0, 2).join(', ') + (r.length > 2 ? ` 외 ${r.length - 2}개` : '') : '전국 (전체)';
-            document.getElementById('filterCatLabel').textContent = c && c.length ? c.slice(0, 2).join(', ') + (c.length > 2 ? ` 외 ${c.length - 2}개` : '') : '전체';
-            document.getElementById('filterClientLabel').textContent = cl && cl.length ? cl.slice(0, 2).join(', ') + (cl.length > 2 ? ` 외 ${cl.length - 2}개` : '') : '전체';
-            document.getElementById('filterSpecialLabel').textContent = currentFilters.specialOnly ? '특수실적만' : '전체 실적';
+            if (document.getElementById('filterRegionLabel'))
+                document.getElementById('filterRegionLabel').textContent = r && r.length ? r.slice(0, 2).join(', ') + (r.length > 2 ? ` 외 ${r.length - 2}개` : '') : '전국 (전체)';
+            if (document.getElementById('filterCatLabel'))
+                document.getElementById('filterCatLabel').textContent = c && c.length ? c.slice(0, 2).join(', ') + (c.length > 2 ? ` 외 ${c.length - 2}개` : '') : '전체';
+            if (document.getElementById('filterClientLabel'))
+                document.getElementById('filterClientLabel').textContent = cl && cl.length ? cl.slice(0, 2).join(', ') + (cl.length > 2 ? ` 외 ${cl.length - 2}개` : '') : '전체';
+            if (document.getElementById('filterSpecialLabel'))
+                document.getElementById('filterSpecialLabel').textContent = currentFilters.specialOnly ? '특수실적만' : '전체 실적';
         }
 
         function clearFilter(key, e) {
@@ -1255,6 +1354,119 @@
             else currentFilters[key] = [];
             render();
             updateFilterLabels();
+        }
+
+        // ─── Data Table & Detail ───
+        let currentTableData = [];
+
+        function renderDataTable(data) {
+            currentTableData = data;
+            const tbody = document.getElementById('dataTableBody');
+            const limit = 100; // performance limit
+            const displayData = data.slice(0, limit);
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-[#9dabb9]">조건에 맞는 데이터가 없습니다.</td></tr>';
+                document.getElementById('dataTableInfo').textContent = '';
+                return;
+            }
+
+            tbody.innerHTML = displayData.map((row, i) => `
+                <tr onclick="openDetailModal(${i})" class="cursor-pointer transition-colors hover:bg-[#283039]">
+                    <td class="px-6 py-3 font-medium text-white">${row.공고번호}</td>
+                    <td class="px-6 py-3">${row.지역제한 || '-'}</td>
+                    <td class="px-6 py-3"><div class="truncate max-w-[200px]" title="${row.종목 || ''}">${row.종목 || '-'}</div></td>
+                    <td class="px-6 py-3 text-right font-bold text-emerald-500">${formatAmt(row.추정가격 || 0)}</td>
+                    <td class="px-6 py-3">${extractClient(row.적격평가세부기준)}</td>
+                    <td class="px-6 py-3 text-[#9dabb9]">${row.입력일 || '-'}</td>
+                </tr>
+            `).join('');
+
+            const remain = data.length - limit;
+            document.getElementById('dataTableInfo').textContent = remain > 0
+                ? `총 ${data.length}건 중 상위 ${limit}건 표시 (전체 보기는 엑셀 다운로드)`
+                : `총 ${data.length}건 표시`;
+        }
+
+        function openDetailModal(idx) {
+            const row = currentTableData[idx];
+            if (!row) return;
+
+            const fields = [
+                { k: '공고번호', v: row.공고번호 },
+                { k: '입력일', v: row.입력일 },
+                { k: '추정가격', v: formatKRW(row.추정가격 || 0) },
+                { k: '계약방법', v: row.계약방법 || '-' },
+                { k: '지역제한', v: row.지역제한 || '-' },
+                { k: '발주처', v: extractClient(row.적격평가세부기준) },
+                { k: '종목', v: row.종목 || '-', full: true },
+                { k: '특수실적', v: row.특수실적 || '-', full: true },
+                { k: '적격평가세부기준', v: row.적격평가세부기준 || '-', full: true },
+            ];
+
+            document.getElementById('detailContent').innerHTML = fields.map(f => `
+                <div class="${f.full ? 'col-span-1 sm:col-span-2' : ''} bg-[#242e38] p-4 rounded-xl border border-[#3b4754]">
+                    <div class="text-xs text-[#9dabb9] mb-1">${f.k}</div>
+                    <div class="text-sm text-white font-medium break-words">${f.v}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('detailModal').classList.remove('hidden');
+            document.getElementById('detailModal').classList.add('flex');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+            document.getElementById('detailModal').classList.remove('flex');
+        }
+        document.getElementById('detailModal').addEventListener('click', e => {
+            if (e.target === document.getElementById('detailModal')) closeDetailModal();
+        });
+
+        function exportToCSV() {
+            if (!currentTableData || !currentTableData.length) {
+                alert('다운로드할 데이터가 없습니다.');
+                return;
+            }
+            // CSV Header
+            const headers = ['공고번호', '추정가격', '지역제한', '종목', '특수실적', '계약방법', '적격평가세부기준', '입력일'];
+            let csvContent = headers.join(',') + '\n';
+
+            // CSV Body
+            currentTableData.forEach(row => {
+                const vals = [
+                    row.공고번호,
+                    row.추정가격,
+                    (row.지역제한 || '').replace(/,/g, '/'),
+                    (row.종목 || '').replace(/,/g, '/'),
+                    (row.특수실적 || '').replace(/,/g, '/'),
+                    row.계약방법,
+                    (row.적격평가세부기준 || '').replace(/,/g, ' '),
+                    row.입력일
+                ];
+                // Escape quotes and wrap in quotes if needed
+                const rowStr = vals.map(v => {
+                    if (v === null || v === undefined) return '';
+                    const s = String(v);
+                    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+                        return '"' + s.replace(/"/g, '""') + '"';
+                    }
+                    return s;
+                }).join(',');
+                csvContent += rowStr + '\n';
+            });
+
+            // BOM for Excel (UTF-8)
+            const bom = '\uFEFF';
+            const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'analysis_data.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     </script>
 </body>
