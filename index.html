@@ -1100,8 +1100,9 @@
                 document.getElementById('subRegionTitle').textContent = selectedParentRegion + ' 세부 지역';
                 const subItems = REGION_SUBS[selectedParentRegion];
                 document.getElementById('subRegionChipGrid').innerHTML = subItems.map(sub => {
-                    const active = sel.includes(sub);
-                    return `<div onclick="toggleSubRegion('${sub}')" class="filter-chip${active ? ' active' : ''}" style="font-size:12px;padding:6px 10px;">
+                    const key = selectedParentRegion + ' ' + sub;
+                    const active = sel.includes(key);
+                    return `<div onclick="toggleSubRegion('${selectedParentRegion}', '${sub}')" class="filter-chip${active ? ' active' : ''}" style="font-size:12px;padding:6px 10px;">
                         <span>${sub}</span>
                         ${active ? '<span class="material-symbols-outlined" style="font-size:13px;">check_circle</span>' : ''}
                     </div>`;
@@ -1125,11 +1126,12 @@
             renderRegionPanel();
         }
 
-        function toggleSubRegion(sub) {
+        function toggleSubRegion(parentRegion, sub) {
             if (!tempFilters.regions) tempFilters.regions = [];
-            const idx = tempFilters.regions.indexOf(sub);
+            const key = parentRegion + ' ' + sub;  // 예: '울산 중구'
+            const idx = tempFilters.regions.indexOf(key);
             if (idx >= 0) tempFilters.regions.splice(idx, 1);
-            else tempFilters.regions.push(sub);
+            else tempFilters.regions.push(key);
             renderRegionPanel();
         }
 
@@ -1137,14 +1139,18 @@
             if (!selectedParentRegion) return;
             const subs = REGION_SUBS[selectedParentRegion] || [];
             if (!tempFilters.regions) tempFilters.regions = [];
-            subs.forEach(s => { if (!tempFilters.regions.includes(s)) tempFilters.regions.push(s); });
+            subs.forEach(s => {
+                const key = selectedParentRegion + ' ' + s;
+                if (!tempFilters.regions.includes(key)) tempFilters.regions.push(key);
+            });
             renderRegionPanel();
         }
 
         function clearSub() {
             if (!selectedParentRegion) return;
             const subs = REGION_SUBS[selectedParentRegion] || [];
-            tempFilters.regions = (tempFilters.regions || []).filter(r => !subs.includes(r));
+            const keys = subs.map(s => selectedParentRegion + ' ' + s);
+            tempFilters.regions = (tempFilters.regions || []).filter(r => !keys.includes(r));
             renderRegionPanel();
         }
 
@@ -1191,19 +1197,22 @@
             ];
             const row = document.getElementById('selectedTagsRow');
             const empty = document.getElementById('selectedTagsEmpty');
+            // 기존 태그 제거 (empty 스팬만 남김)
+            Array.from(row.children).forEach(child => {
+                if (child.id !== 'selectedTagsEmpty') child.remove();
+            });
             if (!allSelected.length) {
-                row.innerHTML = '';
-                row.appendChild(empty);
                 empty.style.display = '';
                 return;
             }
             empty.style.display = 'none';
-            row.innerHTML = allSelected.map(item => `
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium
-                    bg-primary/15 text-primary border border-primary/30 cursor-default">
-                    ${item}
-                    <span onclick="removeSelectedTag('${item.replace(/'/g, "\\\'")}')" class="material-symbols-outlined text-[12px] hover:text-white cursor-pointer">close</span>
-                </span>`).join('');
+            allSelected.forEach(item => {
+                const span = document.createElement('span');
+                span.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary/15 text-primary border border-primary/30 cursor-default';
+                const safeItem = item.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                span.innerHTML = item + '<span onclick="removeSelectedTag(\'' + safeItem + '\')" class="material-symbols-outlined text-[12px] hover:text-white cursor-pointer">close</span>';
+                row.appendChild(span);
+            });
         }
 
         function removeSelectedTag(item) {

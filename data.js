@@ -138,9 +138,26 @@ function computeHeatmap(data) {
 function filterData(data, filters) {
     return data.filter(row => {
         if (filters.regions && filters.regions.length > 0) {
+            const regionText = row.지역제한 || '';
             const matched = filters.regions.some(fr => {
+                // "울산 중구" 형태 처리: 부모지역(울산) + 시군구(중구)
+                const parts = fr.split(' ');
+                if (parts.length >= 2 && REGION_MAP[parts[0]]) {
+                    // 부모 지역이 REGION_MAP에 존재하는 경우 → 시군구 필터
+                    const parentRegion = parts[0];
+                    const subDistrict = parts.slice(1).join(' ');
+                    // 지역제한 필드에 부모 지역이 포함되어 있어야 함
+                    const parentRVals = REGION_MAP[parentRegion] || [parentRegion];
+                    const parentMatched = parentRVals.some(rv => regionText.includes(rv));
+                    if (!parentMatched) return false;
+                    // 지역제한 필드에 시군구가 단어 단위로 포함되어 있어야 함
+                    // 단순 includes가 아닌, '/' 또는 공백으로 구분된 단어로 비교
+                    const regionTokens = regionText.split(/[\/\s,]+/);
+                    return regionTokens.some(token => token.trim() === subDistrict);
+                }
+                // 광역시도 단위 또는 기존 키: 기존 방식대로 처리
                 const rVals = REGION_MAP[fr] || [fr];
-                return row.지역제한 && rVals.some(rv => row.지역제한.includes(rv));
+                return rVals.some(rv => regionText.includes(rv));
             });
             if (!matched && !filters.regions.includes("전국")) return false;
         }
