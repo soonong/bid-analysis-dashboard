@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>입찰 분석 조건 설정 마법사</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: { extend: { colors: { "primary": "#137fec" }, fontFamily: { display: ["Inter", "Noto Sans KR", "sans-serif"] } } }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+        }
+
+        .bubble-shadow {
+            box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .chip {
+            padding: 0.4rem 1rem;
+            border-radius: 9999px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            color: #475569;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .chip:hover {
+            border-color: #93c5fd;
+        }
+
+        .chip.active {
+            background: #137fec;
+            color: #fff;
+            border-color: #137fec;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(19, 127, 236, 0.25);
+        }
+
+        .dark .chip {
+            background: #1e293b;
+            color: #94a3b8;
+            border-color: #334155;
+        }
+
+        .dark .chip.active {
+            background: #137fec;
+            color: #fff;
+            border-color: #137fec;
+        }
+
+        .section-card {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid #f1f5f9;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .dark .section-card {
+            background: rgba(30, 41, 59, 0.5);
+            border-color: #1e293b;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp .4s ease forwards;
+        }
+
+        .thinking {
+            display: inline-flex;
+            gap: 4px;
+            align-items: center;
+            padding: 0.75rem 1rem;
+        }
+
+        .thinking span {
+            width: 8px;
+            height: 8px;
+            background: #137fec;
+            border-radius: 50%;
+            animation: bounce 1.2s infinite;
+        }
+
+        .thinking span:nth-child(2) {
+            animation-delay: .2s;
+        }
+
+        .thinking span:nth-child(3) {
+            animation-delay: .4s;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            80%,
+            100% {
+                transform: translateY(0)
+            }
+
+            40% {
+                transform: translateY(-8px)
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 dark:bg-slate-900 min-h-screen">
+
+    <header
+        class="sticky top-0 z-50 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6 md:px-16 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
+        <div class="flex items-center gap-3">
+            <div
+                class="size-9 flex items-center justify-center bg-primary rounded-lg text-white shadow-md shadow-primary/20">
+                <span class="material-symbols-outlined text-2xl">insights</span>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-slate-900 dark:text-white">AI 입찰 분석 마법사</h1>
+                <p class="text-xs text-slate-500">조건 선택 → 대시보드 자동 적용</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="index.html"
+                class="flex items-center gap-2 px-4 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                대시보드
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4 py-10 space-y-8" id="chatArea">
+
+        <!-- Step 1: 종목 선택 -->
+        <section class="space-y-4 fade-in" id="step1">
+            <div class="flex items-start gap-3">
+                <div
+                    class="size-10 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+                    <span class="material-symbols-outlined text-white text-xl">smart_toy</span>
+                </div>
+                <div
+                    class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none bubble-shadow border border-slate-100 dark:border-slate-700 max-w-md">
+                    <p class="text-base font-medium text-slate-800 dark:text-slate-200 leading-relaxed">안녕하세요! 👋<br>분석할
+                        <strong>종목</strong>을 선택해 주세요.</p>
+                    <p class="text-xs text-slate-400 mt-1">실제 데이터의 종목 기준으로 필터링됩니다.</p>
+                </div>
+            </div>
+            <div class="ml-12 section-card">
+                <label class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-3">
+                    <span class="material-symbols-outlined text-base">category</span> 종목 선택 (복수 가능)
+                </label>
+                <div class="flex flex-wrap gap-2" id="catChips"></div>
+                <div class="mt-4 flex items-center gap-3">
+                    <button onclick="confirmStep(1)"
+                        class="px-8 py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold text-sm hover:opacity-90 transition-all">
+                        선택 완료 →
+                    </button>
+                    <button onclick="skipStep(1)"
+                        class="text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1">
+                        건너뛰기 <span class="material-symbols-outlined text-sm">chevron_right</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Step 2: 지역 선택 (동적 추가) -->
+        <!-- Step 3: 발주처 선택 -->
+        <!-- Step 4: 금액 범위 -->
+        <!-- Step 5: 계약방법 -->
+
+    </main>
+
+    <!-- Sticky Bottom CTA -->
+    <div id="bottomCTA"
+        class="fixed bottom-0 left-0 right-0 p-5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-50 hidden">
+        <div class="max-w-3xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+                <p class="text-sm font-semibold text-slate-900 dark:text-white">분석 준비 완료!</p>
+                <p class="text-xs text-slate-500" id="selectedSummary"></p>
+            </div>
+            <button onclick="goToDashboard()"
+                class="w-full md:w-auto flex items-center justify-center gap-3 px-12 py-4 bg-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                <span class="material-symbols-outlined">analytics</span>
+                분석 리포트 보기
+            </button>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script>
+        // ──── 실제 데이터에서 고유값 추출 ────
+        const uniqCategories = [...new Set(RAW_DATA.map(r => {
+            const v = r.종목 || '';
+            return v.split(/[\/,(]/)[0].trim();
+        }).filter(Boolean))].sort();
+
+        const uniqRegions = [...new Set(RAW_DATA.flatMap(r => {
+            return (r.지역제한 || '').split('/').map(v => v.trim()).filter(Boolean);
+        }))].sort();
+
+        const uniqClients = [...new Set(RAW_DATA.map(r => extractClient(r.적격평가세부기준)))].sort();
+
+        const AMOUNT_RANGES = [
+            { label: '5천만 이하', max: 50000000 },
+            { label: '1억 이하', max: 100000000 },
+            { label: '3억 이하', max: 300000000 },
+            { label: '5억 이하', max: 500000000 },
+            { label: '10억 이하', max: 1000000000 },
+            { label: '10억 초과', max: Infinity },
+        ];
+
+        // ──── State ────
+        const selections = { categories: [], regions: [], clients: [], amtRange: null, contractMethod: null };
+        let stepsCompleted = 0;
+
+        // ──── Step 1: 종목 chips ────
+        document.getElementById('catChips').innerHTML = uniqCategories.map(c =>
+            `<button class="chip" onclick="toggleChip(this,'categories','${c}')">${c}</button>`
+        ).join('');
+
+        // ──── Chip toggle ────
+        function toggleChip(btn, key, val) {
+            if (selections[key].includes(val)) {
+                selections[key] = selections[key].filter(v => v !== val);
+                btn.classList.remove('active');
+            } else {
+                selections[key].push(val);
+                btn.classList.add('active');
+            }
+        }
+
+        function setChipSingle(btn, key, val) {
+            selections[key] = [val];
+            document.querySelectorAll(`[data-group="${key}"]`).forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // ──── Step builder ────
+        function confirmStep(step) {
+            stepsCompleted = Math.max(stepsCompleted, step);
+            addThinkingBubble(() => {
+                if (step === 1) addStep2();
+                else if (step === 2) addStep3();
+                else if (step === 3) addStep4();
+                else if (step === 4) addStep5();
+                else if (step === 5) showCTA();
+            });
+        }
+
+        function skipStep(step) {
+            confirmStep(step);
+        }
+
+        function addThinkingBubble(callback) {
+            const id = 'thinking_' + Date.now();
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = 'flex items-start gap-3 fade-in';
+            div.innerHTML = `
+    <div class="size-10 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+      <span class="material-symbols-outlined text-white text-xl">smart_toy</span>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-2xl rounded-tl-none bubble-shadow border border-slate-100 dark:border-slate-700">
+      <div class="thinking"><span></span><span></span><span></span></div>
+    </div>`;
+            document.getElementById('chatArea').appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            setTimeout(() => {
+                document.getElementById(id).remove();
+                callback();
+            }, 900);
+        }
+
+        function addSection(html) {
+            const div = document.createElement('div');
+            div.className = 'fade-in';
+            div.innerHTML = html;
+            document.getElementById('chatArea').appendChild(div);
+            setTimeout(() => div.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
+        }
+
+        // ──── Step 2: 지역 ────
+        function addStep2() {
+            addSection(`
+  <section class="space-y-4" id="step2">
+    <div class="flex items-start gap-3">
+      <div class="size-10 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+        <span class="material-symbols-outlined text-white text-xl">smart_toy</span>
+      </div>
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none bubble-shadow border border-slate-100 dark:border-slate-700 max-w-md">
+        <p class="text-base font-medium text-slate-800 dark:text-slate-200">분석할 <strong>지역</strong>을 선택해 주세요.</p>
+      </div>
+    </div>
+    <div class="ml-12 section-card">
+      <label class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-3">
+        <span class="material-symbols-outlined text-base">location_on</span> 지역 선택 (복수 가능)
+      </label>
+      <div class="flex flex-wrap gap-2">
+        ${uniqRegions.map(r => `<button class="chip" onclick="toggleChip(this,'regions','${r}')">${r}</button>`).join('')}
+      </div>
+      <div class="mt-4 flex items-center gap-3">
+        <button onclick="confirmStep(2)" class="px-8 py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold text-sm hover:opacity-90">선택 완료 →</button>
+        <button onclick="skipStep(2)" class="text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1">건너뛰기 <span class="material-symbols-outlined text-sm">chevron_right</span></button>
+      </div>
+    </div>
+  </section>`);
+        }
+
+        // ──── Step 3: 발주처 ────
+        function addStep3() {
+            addSection(`
+  <section class="space-y-4" id="step3">
+    <div class="flex items-start gap-3">
+      <div class="size-10 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+        <span class="material-symbols-outlined text-white text-xl">smart_toy</span>
+      </div>
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none bubble-shadow border border-slate-100 dark:border-slate-700 max-w-md">
+        <p class="text-base font-medium text-slate-800 dark:text-slate-200"><strong>발주처</strong>는 어디로 할까요?</p>
+      </div>
+    </div>
+    <div class="ml-12 section-card">
+      <div class="flex flex-wrap gap-2">
+        ${uniqClients.map(c => `<button class="chip" onclick="toggleChip(this,'clients','${c}')">${c}</button>`).join('')}
+      </div>
+      <div class="mt-4 flex items-center gap-3">
+        <button onclick="confirmStep(3)" class="px-8 py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold text-sm hover:opacity-90">선택 완료 →</button>
+        <button onclick="skipStep(3)" class="text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1">건너뛰기 <span class="material-symbols-outlined text-sm">chevron_right</span></button>
+      </div>
+    </div>
+  </section>`);
+        }
+
+        // ──── Step 4: 금액 범위 ────
+        function addStep4() {
+            addSection(`
+  <section class="space-y-4" id="step4">
+    <div class="flex items-start gap-3">
+      <div class="size-10 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+        <span class="material-symbols-outlined text-white text-xl">smart_toy</span>
+      </div>
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none bubble-shadow border border-slate-100 dark:border-slate-700 max-w-md">
+        <p class="text-base font-medium text-slate-800 dark:text-slate-200"><strong>추정금액 범위</strong>를 선택해 주세요.</p>
+      </div>
+    </div>
+    <div class="ml-12 section-card">
+      <div class="flex flex-wrap gap-2">
+        ${AMOUNT_RANGES.map((r, i) => `<button class="chip" data-group="amtRange" onclick="selections.amtRange=${JSON.stringify(r)};document.querySelectorAll('[data-group=amtRange]').forEach(b=>b.classList.remove('active'));this.classList.add('active')">${r.label}</button>`).join('')}
+      </div>
+      <div class="mt-4 flex items-center gap-3">
+        <button onclick="confirmStep(4)" class="px-8 py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold text-sm hover:opacity-90">선택 완료 →</button>
+        <button onclick="skipStep(4)" class="text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1">건너뛰기 <span class="material-symbols-outlined text-sm">chevron_right</span></button>
+      </div>
+    </div>
+  </section>`);
+        }
+
+        // ──── Step 5: 계약방법 ────
+        function addStep5() {
+            addSection(`
+  <section class="space-y-4" id="step5">
+    <div class="flex items-start gap-3">
+      <div class="size-10 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+        <span class="material-symbols-outlined text-white text-xl">smart_toy</span>
+      </div>
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none bubble-shadow border border-slate-100 dark:border-slate-700 max-w-md">
+        <p class="text-base font-medium text-slate-800 dark:text-slate-200">마지막으로 <strong>계약 방법</strong>을 선택해 주세요.</p>
+      </div>
+    </div>
+    <div class="ml-12 section-card">
+      <div class="flex flex-wrap gap-2">
+        ${['적격심사', '수의', '전체'].map(m => `<button class="chip ${m === '전체' ? 'active' : ''}" data-group="contract" onclick="selections.contractMethod='${m === '전체' ? null : m}';document.querySelectorAll('[data-group=contract]').forEach(b=>b.classList.remove('active'));this.classList.add('active')">${m}</button>`).join('')}
+      </div>
+      <div class="mt-4">
+        <button onclick="confirmStep(5)" class="px-8 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:opacity-90 shadow-lg shadow-primary/20">완료 – 분석 보기 →</button>
+      </div>
+    </div>
+  </section>`);
+        }
+
+        // ──── Show CTA ────
+        function showCTA() {
+            // 결과 미리보기
+            const filters = {
+                categories: selections.categories,
+                regions: selections.regions,
+                contractMethod: selections.contractMethod,
+                maxAmt: selections.amtRange?.max === Infinity ? null : selections.amtRange?.max,
+            };
+            const result = filterData(RAW_DATA, filters);
+
+            addSection(`
+  <section class="fade-in">
+    <div class="flex items-start gap-3">
+      <div class="size-10 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+        <span class="material-symbols-outlined text-white text-xl">smart_toy</span>
+      </div>
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none bubble-shadow border border-slate-100 dark:border-slate-700 max-w-md">
+        <p class="text-base font-medium text-slate-800 dark:text-slate-200">설정 완료! 총 <strong class="text-primary">${result.length}건</strong>의 공고가 해당됩니다.<br>대시보드에서 상세 분석 결과를 확인하세요.</p>
+      </div>
+    </div>
+  </section>`);
+
+            document.getElementById('selectedSummary').textContent =
+                `종목: ${selections.categories.join(',') || '전체'} / 지역: ${selections.regions.join(',') || '전체'} / ${result.length}건 해당`;
+            document.getElementById('bottomCTA').classList.remove('hidden');
+            setTimeout(() => document.getElementById('bottomCTA').scrollIntoView({ behavior: 'smooth', block: 'end' }), 200);
+        }
+
+        // ──── Go to dashboard with filters ────
+        function goToDashboard() {
+            const params = new URLSearchParams();
+            if (selections.categories.length) params.set('cats', selections.categories.join(','));
+            if (selections.regions.length) params.set('regs', selections.regions.join(','));
+            if (selections.contractMethod) params.set('contract', selections.contractMethod);
+            if (selections.amtRange?.max && selections.amtRange.max !== Infinity) params.set('maxAmt', selections.amtRange.max);
+            window.location.href = 'index.html?' + params.toString();
+        }
+    </script>
+</body>
+
+</html>

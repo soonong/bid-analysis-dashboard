@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html class="dark" lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>경영진용 통합 분석 대시보드</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec", "background-dark": "#101922", "surface-dark": "#1a232e",
+                        "surface-darker": "#151c24", "blue-matrix-low": "#1e293b", "blue-matrix-mid": "#1e3a8a", "blue-matrix-high": "#3b82f6"
+                    }, fontFamily: { display: ["Inter", "sans-serif"] }, borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        .custom-scrollbar::-webkit-scrollbar{height:8px;width:8px}
+  .custom-scrollbar::-webkit-scrollbar-track{background:#1a232e}
+  .custom-scrollbar::-webkit-scrollbar-thumb{background:#374151;border-radius:4px}
+  .heatmap-cell{@apply flex h-11 items-center justify-center rounded transition-all cursor-pointer border border-transparent hover:border-white/40 text-sm;}
+</style>
+</head>
+
+<body class="bg-background-dark font-display text-slate-100 antialiased overflow-hidden">
+    <div class="flex h-screen w-full flex-col overflow-hidden">
+
+        <!-- HEADER -->
+        <header
+            class="flex flex-none items-center justify-between border-b border-[#283039] bg-background-dark px-6 py-3">
+            <div class="flex items-center gap-4">
+                <div class="size-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
+                    <span class="material-symbols-outlined">analytics</span>
+                </div>
+                <div>
+                    <h2 class="text-white text-lg font-bold">경영진 전략 분석 보드</h2>
+                    <p class="text-[#9dabb9] text-xs">통합 전략 분석 및 지역/종목 매트릭스</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div
+                    class="hidden md:flex items-center gap-2 bg-surface-dark px-3 py-1.5 rounded-lg border border-[#283039]">
+                    <span class="material-symbols-outlined text-[#9dabb9] text-[20px]">calendar_today</span>
+                    <span class="text-sm text-slate-300" id="updateTime">로딩중...</span>
+                </div>
+                <a href="wizard.html"
+                    class="flex items-center gap-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 h-9 px-4 text-sm font-bold transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">chat</span>
+                    <span class="hidden sm:inline">AI 조건 설정</span>
+                </a>
+                <button onclick="openFilterModal()"
+                    class="flex items-center gap-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 h-9 px-4 text-sm font-bold transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">filter_list</span>
+                    <span class="hidden sm:inline">필터</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+            <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+                <div class="flex-1 overflow-y-auto custom-scrollbar">
+                    <div class="p-6 space-y-5">
+
+                        <!-- Title + Period -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <h2 class="text-2xl font-bold text-white">통합 전략 분석 대시보드</h2>
+                            <div
+                                class="flex flex-wrap items-center gap-1 bg-surface-dark p-1 rounded-lg border border-[#283039]">
+                                <button class="px-3 py-1.5 text-sm font-bold text-white bg-primary rounded-md shadow-sm"
+                                    id="periodAll">전체</button>
+                                <button
+                                    class="px-3 py-1.5 text-sm text-[#9dabb9] hover:text-white hover:bg-[#283039] rounded-md transition-colors"
+                                    onclick="filterByDate(1)">1월</button>
+                                <button
+                                    class="px-3 py-1.5 text-sm text-[#9dabb9] hover:text-white hover:bg-[#283039] rounded-md transition-colors"
+                                    onclick="filterByDate(2)">2월</button>
+                                <button
+                                    class="px-3 py-1.5 text-sm text-[#9dabb9] hover:text-white hover:bg-[#283039] rounded-md transition-colors"
+                                    onclick="filterByDate(3)">3월</button>
+                            </div>
+                        </div>
+
+                        <!-- Active Filters Bar -->
+                        <div id="activeFiltersBar"
+                            class="hidden flex flex-wrap gap-2 p-3 bg-surface-dark rounded-lg border border-[#3b4754]">
+                            <span class="text-xs text-[#9dabb9]">적용 필터:</span>
+                            <div id="activeFilterChips" class="flex flex-wrap gap-2"></div>
+                            <button onclick="clearAllFilters()"
+                                class="text-xs text-red-400 hover:text-red-300 ml-auto">전체 초기화</button>
+                        </div>
+
+                        <!-- KPI Cards -->
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="kpiCards">
+                            <div
+                                class="p-5 rounded-xl border border-[#3b4754] bg-surface-dark flex items-center justify-between relative overflow-hidden hover:border-primary/50 transition-all duration-300">
+                                <div>
+                                    <span
+                                        class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/20 text-primary border border-primary/20">총
+                                        공고 금액</span>
+                                    <div class="text-xl font-bold text-white mt-2 mb-2" id="kpi-amt">-</div>
+                                    <span class="text-xs text-emerald-500 font-bold">실데이터 기준</span>
+                                </div>
+                                <div class="p-3 bg-[#242e38] rounded-full text-primary">
+                                    <span class="material-symbols-outlined text-[22px]">payments</span>
+                                </div>
+                            </div>
+                            <div
+                                class="p-5 rounded-xl border border-[#3b4754] bg-surface-dark flex items-center justify-between relative overflow-hidden hover:border-purple-500/50 transition-all duration-300">
+                                <div>
+                                    <span
+                                        class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/20">총
+                                        공고 수</span>
+                                    <div class="text-xl font-bold text-white mt-2 mb-2" id="kpi-count">-</div>
+                                    <span class="text-xs text-[#9dabb9]">건</span>
+                                </div>
+                                <div class="p-3 bg-[#242e38] rounded-full text-purple-500">
+                                    <span class="material-symbols-outlined text-[22px]">receipt_long</span>
+                                </div>
+                            </div>
+                            <div
+                                class="p-5 rounded-xl border border-[#3b4754] bg-surface-dark flex items-center justify-between relative overflow-hidden hover:border-amber-500/50 transition-all duration-300">
+                                <div>
+                                    <span
+                                        class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/20 text-amber-500 border border-amber-500/20">최다
+                                        발주 기관</span>
+                                    <div class="text-sm font-bold text-white mt-2 mb-2" id="kpi-topClient">-</div>
+                                    <span class="text-xs text-[#9dabb9]" id="kpi-topClientCnt">-</span>
+                                </div>
+                                <div class="p-3 bg-[#242e38] rounded-full text-amber-500">
+                                    <span class="material-symbols-outlined text-[22px]">corporate_fare</span>
+                                </div>
+                            </div>
+                            <div
+                                class="p-5 rounded-xl border border-[#3b4754] bg-surface-dark flex items-center justify-between relative overflow-hidden hover:border-emerald-500/50 transition-all duration-300">
+                                <div>
+                                    <span
+                                        class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-500 border border-emerald-500/20">특수실적
+                                        공고</span>
+                                    <div class="text-xl font-bold text-white mt-2 mb-2" id="kpi-special">-</div>
+                                    <span class="text-xs text-[#9dabb9]">건 (특수실적 필요)</span>
+                                </div>
+                                <div class="p-3 bg-[#242e38] rounded-full text-emerald-500">
+                                    <span class="material-symbols-outlined text-[22px]">military_tech</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chart + Heatmap row -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+                            <!-- Bar Chart: 계약방법 분포 -->
+                            <div class="rounded-xl border border-[#3b4754] bg-surface-dark shadow-sm">
+                                <div class="flex items-center gap-3 border-b border-[#3b4754] px-5 py-4">
+                                    <div class="bg-primary/20 p-2 rounded-lg text-primary"><span
+                                            class="material-symbols-outlined">ssid_chart</span></div>
+                                    <div>
+                                        <h3 class="text-base font-bold text-white">종목별 공고 분포</h3>
+                                        <p class="text-xs text-[#9dabb9] mt-0.5">종목별 건수 및 금액 비중</p>
+                                    </div>
+                                </div>
+                                <div class="p-5 space-y-3" id="categoryChart"></div>
+                            </div>
+
+                            <!-- Contract Method Donut -->
+                            <div class="rounded-xl border border-[#3b4754] bg-surface-dark shadow-sm">
+                                <div class="flex items-center gap-3 border-b border-[#3b4754] px-5 py-4">
+                                    <div class="bg-emerald-500/20 p-2 rounded-lg text-emerald-400"><span
+                                            class="material-symbols-outlined">donut_large</span></div>
+                                    <div>
+                                        <h3 class="text-base font-bold text-white">계약방법 분포</h3>
+                                        <p class="text-xs text-[#9dabb9] mt-0.5">적격심사 vs 수의계약</p>
+                                    </div>
+                                </div>
+                                <div class="p-5 space-y-3" id="contractChart"></div>
+                            </div>
+                        </div>
+
+                        <!-- Heatmap -->
+                        <div class="flex flex-col rounded-xl border border-[#3b4754] bg-surface-dark shadow-sm">
+                            <div
+                                class="flex flex-wrap items-center justify-between gap-4 border-b border-[#3b4754] px-5 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="bg-primary/20 p-2 rounded-lg text-primary"><span
+                                            class="material-symbols-outlined">grid_on</span></div>
+                                    <div>
+                                        <h3 class="text-base font-bold text-white">지역/종목 교차 분석 매트릭스</h3>
+                                        <p class="text-xs text-[#9dabb9] mt-0.5">실제 데이터 기반 히트맵</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto p-5 custom-scrollbar">
+                                <table class="w-full border-separate border-spacing-1.5 text-sm" id="heatmapTable">
+                                </table>
+                            </div>
+                            <div class="px-5 py-3 border-t border-[#3b4754] flex items-center justify-between">
+                                <div class="flex items-center gap-4 text-xs font-medium text-[#9dabb9]">
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="w-3 h-3 rounded bg-blue-matrix-low border border-[#3b4754]"></div>
+                                        <span>0건</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="w-3 h-3 rounded bg-blue-matrix-mid border border-blue-800"></div>
+                                        <span>1건</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="w-3 h-3 rounded bg-blue-matrix-high shadow-sm"></div>
+                                        <span>2건+</span>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-[#9dabb9]" id="heatmapSubtitle">실시간 교차 분석</div>
+                            </div>
+                        </div>
+
+                        <!-- Data Table -->
+                        <div class="rounded-xl border border-[#3b4754] bg-surface-dark shadow-sm">
+                            <div class="flex items-center justify-between border-b border-[#3b4754] px-5 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="bg-purple-500/20 p-2 rounded-lg text-purple-400"><span
+                                            class="material-symbols-outlined">table_view</span></div>
+                                    <h3 class="text-base font-bold text-white">공고 상세 목록</h3>
+                                </div>
+                                <span class="text-xs text-[#9dabb9]" id="tableCount"></span>
+                            </div>
+                            <div class="overflow-x-auto custom-scrollbar">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="border-b border-[#3b4754]">
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-[#9dabb9]">공고번호
+                                            </th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-[#9dabb9]">종목</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-[#9dabb9]">지역</th>
+                                            <th class="px-4 py-3 text-right text-xs font-semibold text-[#9dabb9]">추정가격
+                                            </th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-[#9dabb9]">계약방법
+                                            </th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-[#9dabb9]">특수실적
+                                            </th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-[#9dabb9]">입력일
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dataTable"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div><!-- /p-6 -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- FILTER MODAL -->
+    <div id="filterModal"
+        class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div
+            class="bg-surface-dark border border-[#3b4754] w-full max-w-2xl flex flex-col rounded-2xl shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-5 border-b border-[#3b4754]">
+                <div class="flex items-center gap-3">
+                    <div class="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined">filter_list</span>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">상세 조건 선택</h3>
+                        <p class="text-xs text-[#9dabb9] mt-0.5">분석에 포함할 조건을 선택하세요</p>
+                    </div>
+                </div>
+                <button onclick="closeFilterModal()"
+                    class="size-10 flex items-center justify-center rounded-lg hover:bg-[#283039] text-[#9dabb9]">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="p-6 space-y-5 overflow-y-auto max-h-[60vh] custom-scrollbar">
+                <!-- 지역 -->
+                <div>
+                    <label class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg text-primary">map</span> 지역
+                    </label>
+                    <div class="flex flex-wrap gap-2" id="regionChips"></div>
+                </div>
+                <!-- 종목 -->
+                <div>
+                    <label class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg text-purple-400">category</span> 종목
+                    </label>
+                    <div class="flex flex-wrap gap-2" id="categoryChips"></div>
+                </div>
+                <!-- 계약방법 -->
+                <div>
+                    <label class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg text-amber-400">gavel</span> 계약방법
+                    </label>
+                    <div class="flex flex-wrap gap-2" id="contractChips"></div>
+                </div>
+                <!-- 특수실적 -->
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="specialCheck" class="w-4 h-4 accent-primary">
+                    <label for="specialCheck" class="text-sm text-white cursor-pointer">특수실적 필요 공고만 보기</label>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-[#3b4754] flex items-center justify-between">
+                <button onclick="clearAllFilters()"
+                    class="px-5 h-10 rounded-xl border border-[#3b4754] text-[#9dabb9] text-sm hover:bg-[#283039]">초기화</button>
+                <button onclick="applyFilters()"
+                    class="px-8 h-10 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 shadow-lg shadow-primary/20">적용하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script>
+        // ──── State ────
+        let currentFilters = { regions: [], categories: [], contractMethod: null, specialOnly: false };
+        let currentData = [];
+
+        // ──── Init ────
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('updateTime').textContent = '데이터: 2025-01-03 기준';
+            currentData = RAW_DATA;
+            buildFilterChips();
+
+            // URL 파라미터에서 마법사 조건 읽기
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('cats')) {
+                currentFilters.categories = params.get('cats').split(',');
+                currentFilters.categories.forEach(c => {
+                    document.querySelectorAll('#categoryChips .filter-chip').forEach(btn => {
+                        if (btn.textContent.trim() === c) btn.classList.add('border-primary', 'bg-primary/10', 'text-primary', 'font-bold');
+                    });
+                });
+            }
+            if (params.get('regs')) {
+                currentFilters.regions = params.get('regs').split(',');
+                currentFilters.regions.forEach(r => {
+                    document.querySelectorAll('#regionChips .filter-chip').forEach(btn => {
+                        if (btn.textContent.trim() === r) btn.classList.add('border-primary', 'bg-primary/10', 'text-primary', 'font-bold');
+                    });
+                });
+            }
+            if (params.get('contract')) currentFilters.contractMethod = params.get('contract');
+            if (params.get('maxAmt')) currentFilters.maxAmt = parseInt(params.get('maxAmt'));
+            if (params.toString()) updateFilterBar();
+
+            render();
+        });
+
+        // ──── Period filter ────
+        function filterByDate(month) {
+            currentData = RAW_DATA.filter(r => new Date(r.입력일).getMonth() + 1 === month);
+            render();
+        }
+        document.getElementById('periodAll').addEventListener('click', () => { currentData = filterData(RAW_DATA, currentFilters); render(); });
+
+        // ──── Render ────
+        function render() {
+            const data = filterData(currentData.length ? currentData : RAW_DATA, currentFilters);
+            renderKPI(data);
+            renderCategoryChart(data);
+            renderContractChart(data);
+            renderHeatmap(data);
+            renderTable(data);
+        }
+
+        function renderKPI(data) {
+            const totalAmt = data.reduce((s, r) => s + (r.추정가격 || 0), 0);
+            const special = data.filter(r => r.특수실적).length;
+            document.getElementById('kpi-amt').textContent = formatAmt(totalAmt);
+            document.getElementById('kpi-count').textContent = data.length;
+            document.getElementById('kpi-special').textContent = special;
+
+            const cc = {};
+            data.forEach(r => { const c = extractClient(r.적격평가세부기준); cc[c] = (cc[c] || 0) + 1; });
+            const top = Object.entries(cc).sort((a, b) => b[1] - a[1])[0];
+            if (top) {
+                document.getElementById('kpi-topClient').textContent = top[0];
+                document.getElementById('kpi-topClientCnt').textContent = top[1] + '건 발주';
+            }
+        }
+
+        function renderCategoryChart(data) {
+            const cats = {};
+            data.forEach(r => {
+                if (!r.종목) return;
+                const key = r.종목.split(/[\/,\(]/)[0].trim();
+                cats[key] = (cats[key] || 0) + 1;
+            });
+            const sorted = Object.entries(cats).sort((a, b) => b[1] - a[1]).slice(0, 6);
+            const max = sorted[0]?.[1] || 1;
+            const colors = ['from-blue-600 to-primary', 'from-purple-600 to-purple-400', 'from-emerald-600 to-emerald-400', 'from-amber-600 to-amber-400', 'from-rose-600 to-rose-400', 'from-cyan-600 to-cyan-400'];
+            document.getElementById('categoryChart').innerHTML = sorted.map(([cat, cnt], i) => `
+    <div class="space-y-1">
+      <div class="flex justify-between text-sm"><span class="text-white font-medium">${cat}</span><span class="text-white font-bold">${cnt}건</span></div>
+      <div class="h-3 w-full rounded-full bg-[#283039] overflow-hidden">
+        <div class="h-full rounded-full bg-gradient-to-r ${colors[i % colors.length]} transition-all duration-700" style="width:${Math.round(cnt / max * 100)}%"></div>
+      </div>
+    </div>`).join('');
+        }
+
+        function renderContractChart(data) {
+            const cc = {};
+            data.forEach(r => { const k = r.계약방법 || '미정'; cc[k] = (cc[k] || 0) + 1; });
+            const total = data.length || 1;
+            const colors = { '적격심사': 'bg-primary', '수의': 'bg-emerald-500', '미정': 'bg-slate-500' };
+            document.getElementById('contractChart').innerHTML = Object.entries(cc).map(([k, v]) => `
+    <div class="space-y-1">
+      <div class="flex justify-between text-sm"><span class="text-white font-medium">${k}</span><span class="text-white font-bold">${v}건 (${Math.round(v / total * 100)}%)</span></div>
+      <div class="h-3 w-full rounded-full bg-[#283039] overflow-hidden">
+        <div class="h-full rounded-full ${colors[k] || 'bg-slate-400'} transition-all duration-700" style="width:${Math.round(v / total * 100)}%"></div>
+      </div>
+    </div>`).join('');
+        }
+
+        function renderHeatmap(data) {
+            const regions = ['전국', '경기', '서울', '충남', '경북', '전남', '제주'];
+            const cats = ['전기', '통신', '소방', '건축', '토목', '기계가스설비'];
+            const matrix = {};
+            regions.forEach(r => { matrix[r] = {}; cats.forEach(c => matrix[r][c] = 0); });
+
+            data.forEach(row => {
+                const reg = row.지역제한 || '';
+                const jong = row.종목 || '';
+                regions.forEach(r => {
+                    if (r === '전국' || reg.includes(r) || (r !== '전국' && reg.includes('전국'))) {
+                        cats.forEach(c => {
+                            if (jong.includes(c.replace('가스설비', '')) || jong.includes(c)) {
+                                matrix[r][c]++;
+                            }
+                        });
+                    }
+                });
+            });
+
+            const maxVal = Math.max(1, ...Object.values(matrix).flatMap(r => Object.values(r)));
+            const getColor = n => n === 0 ? 'bg-blue-matrix-low text-slate-500' : n === 1 ? 'bg-blue-matrix-mid text-white' : 'bg-blue-matrix-high text-white font-bold shadow-lg shadow-blue-500/20';
+
+            const thead = `<thead><tr><th class="p-2 text-left text-xs font-medium text-[#9dabb9] w-20">지역</th>${cats.map(c => `<th class="p-2 text-center text-xs font-medium text-[#9dabb9]">${c}</th>`).join('')}</tr></thead>`;
+            const tbody = `<tbody class="text-white">${regions.map(r => `
+    <tr>
+      <td class="p-2 font-bold text-slate-300 text-sm">${r}</td>
+      ${cats.map(c => `<td class="p-0"><div class="heatmap-cell ${getColor(matrix[r][c])}">${matrix[r][c] || '-'}</div></td>`).join('')}
+    </tr>`).join('')}</tbody>`;
+
+            document.getElementById('heatmapTable').innerHTML = thead + tbody;
+            document.getElementById('heatmapSubtitle').textContent = `${data.length}건 데이터 기반 실시간 교차 분석`;
+        }
+
+        function renderTable(data) {
+            document.getElementById('tableCount').textContent = `총 ${data.length}건`;
+            const contractBadge = m => m === '적격심사' ? 'bg-primary/20 text-primary' : m === '수의' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20 text-slate-400';
+            document.getElementById('dataTable').innerHTML = data.map(r => `
+    <tr class="border-b border-[#283039] hover:bg-[#242e38] transition-colors">
+      <td class="px-4 py-3 font-mono text-xs text-[#9dabb9]">${r.공고번호}</td>
+      <td class="px-4 py-3 text-sm text-white">${(r.종목 || '-').substring(0, 20)}${r.종목 && r.종목.length > 20 ? '…' : ''}</td>
+      <td class="px-4 py-3 text-sm text-slate-300">${r.지역제한 || '-'}</td>
+      <td class="px-4 py-3 text-right text-sm font-bold text-white">${formatAmt(r.추정가격 || 0)}</td>
+      <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs font-semibold ${contractBadge(r.계약방법)}">${r.계약방법 || '미정'}</span></td>
+      <td class="px-4 py-3 text-xs text-amber-400">${r.특수실적 || '-'}</td>
+      <td class="px-4 py-3 text-xs text-[#9dabb9]">${r.입력일 || '-'}</td>
+    </tr>`).join('');
+        }
+
+        // ──── Filter Modal ────
+        const REGIONS = ['전국', '서울', '경기', '인천', '충남', '충북', '부산', '경북', '경남', '전남', '전북', '강원', '대구', '광주', '대전', '울산', '세종', '제주'];
+        const CATEGORIES = ['전기', '통신', '소방', '건축', '실내건축', '토목', '기계가스설비', '도장습식방수석공', '전문소방'];
+
+        function buildFilterChips() {
+            document.getElementById('regionChips').innerHTML = REGIONS.map(r =>
+                `<button onclick="toggleFilter('regions','${r}',this)" class="filter-chip px-3 py-1.5 rounded-lg border border-[#3b4754] bg-[#242e38] text-sm text-[#9dabb9] hover:bg-[#2f3b46] transition-all">${r}</button>`
+            ).join('');
+            document.getElementById('categoryChips').innerHTML = CATEGORIES.map(c =>
+                `<button onclick="toggleFilter('categories','${c}',this)" class="filter-chip px-3 py-1.5 rounded-lg border border-[#3b4754] bg-[#242e38] text-sm text-[#9dabb9] hover:bg-[#2f3b46] transition-all">${c}</button>`
+            ).join('');
+            document.getElementById('contractChips').innerHTML = ['적격심사', '수의'].map(m =>
+                `<button onclick="setContract('${m}',this)" class="filter-chip px-3 py-1.5 rounded-lg border border-[#3b4754] bg-[#242e38] text-sm text-[#9dabb9] hover:bg-[#2f3b46] transition-all">${m}</button>`
+            ).join('');
+        }
+
+        function toggleFilter(type, val, btn) {
+            const arr = currentFilters[type];
+            const idx = arr.indexOf(val);
+            if (idx >= 0) { arr.splice(idx, 1); btn.classList.remove('border-primary', 'bg-primary/10', 'text-primary', 'font-bold'); }
+            else { arr.push(val); btn.classList.add('border-primary', 'bg-primary/10', 'text-primary', 'font-bold'); }
+        }
+
+        function setContract(val, btn) {
+            if (currentFilters.contractMethod === val) {
+                currentFilters.contractMethod = null;
+                btn.classList.remove('border-primary', 'bg-primary/10', 'text-primary', 'font-bold');
+            } else {
+                currentFilters.contractMethod = val;
+                document.querySelectorAll('#contractChips .filter-chip').forEach(b => b.classList.remove('border-primary', 'bg-primary/10', 'text-primary', 'font-bold'));
+                btn.classList.add('border-primary', 'bg-primary/10', 'text-primary', 'font-bold');
+            }
+        }
+
+        function applyFilters() {
+            currentFilters.specialOnly = document.getElementById('specialCheck').checked;
+            currentData = RAW_DATA;
+            render();
+            closeFilterModal();
+            updateFilterBar();
+        }
+
+        function updateFilterBar() {
+            const bar = document.getElementById('activeFiltersBar');
+            const chips = document.getElementById('activeFilterChips');
+            const all = [...currentFilters.regions, ...currentFilters.categories];
+            if (currentFilters.contractMethod) all.push(currentFilters.contractMethod);
+            if (currentFilters.specialOnly) all.push('특수실적');
+            chips.innerHTML = all.map(f => `<span class="px-2 py-0.5 rounded bg-primary/20 text-primary text-xs font-bold">${f}</span>`).join('');
+            bar.classList.toggle('hidden', all.length === 0);
+            bar.classList.toggle('flex', all.length > 0);
+        }
+
+        function clearAllFilters() {
+            currentFilters = { regions: [], categories: [], contractMethod: null, specialOnly: false };
+            document.getElementById('specialCheck').checked = false;
+            document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('border-primary', 'bg-primary/10', 'text-primary', 'font-bold'));
+            currentData = RAW_DATA;
+            render();
+            updateFilterBar();
+            closeFilterModal();
+        }
+
+        function openFilterModal() { document.getElementById('filterModal').classList.remove('hidden'); document.getElementById('filterModal').classList.add('flex'); }
+        function closeFilterModal() { document.getElementById('filterModal').classList.add('hidden'); document.getElementById('filterModal').classList.remove('flex'); }
+        document.getElementById('filterModal').addEventListener('click', e => { if (e.target === document.getElementById('filterModal')) closeFilterModal(); });
+    </script>
+</body>
+
+</html>
