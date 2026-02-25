@@ -219,6 +219,24 @@
                             </div>
                         </div>
 
+                        <!-- Monthly Trend Chart -->
+                        <div class="rounded-xl border border-[#3b4754] bg-surface-dark shadow-sm">
+                            <div class="flex items-center gap-3 border-b border-[#3b4754] px-5 py-4">
+                                <div class="bg-primary/20 p-2 rounded-lg text-primary">
+                                    <span class="material-symbols-outlined">bar_chart</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-white">월별 공고 건수 추이</h3>
+                                    <p class="text-xs text-[#9dabb9] mt-0.5">입력일 기준 월별 집계</p>
+                                </div>
+                            </div>
+                            <div class="p-5 overflow-x-auto custom-scrollbar">
+                                <div id="monthlyChart" class="h-48 flex items-end justify-between gap-2 min-w-[600px]">
+                                    <!-- Chart bars will be injected here -->
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Data Table -->
                         <div class="rounded-xl border border-[#3b4754] bg-surface-dark shadow-sm">
                             <div class="flex items-center justify-between border-b border-[#3b4754] px-5 py-4">
@@ -227,7 +245,13 @@
                                             class="material-symbols-outlined">table_view</span></div>
                                     <h3 class="text-base font-bold text-white">공고 상세 목록</h3>
                                 </div>
-                                <span class="text-xs text-[#9dabb9]" id="tableCount"></span>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs text-[#9dabb9]" id="tableCount"></span>
+                                    <button onclick="exportToCSV()"
+                                        class="flex items-center gap-1 bg-emerald-600/20 text-emerald-400 border border-emerald-600/30 hover:bg-emerald-600/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-all">
+                                        <span class="material-symbols-outlined text-sm">download</span> 엑셀 저장
+                                    </button>
+                                </div>
                             </div>
                             <div class="overflow-x-auto custom-scrollbar">
                                 <table class="w-full text-sm">
@@ -315,11 +339,67 @@
         </div>
     </div>
 
+    <!-- DETAIL MODAL -->
+    <div id="detailModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden items-center justify-center p-4">
+        <div class="bg-surface-dark border border-[#3b4754] w-full max-w-2xl flex flex-col rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
+            <div class="flex items-center justify-between px-6 py-5 border-b border-[#3b4754]">
+                <div class="flex items-center gap-3">
+                    <div class="size-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
+                        <span class="material-symbols-outlined">description</span>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">공고 상세 정보</h3>
+                        <p class="text-xs text-[#9dabb9] mt-0.5" id="detailModalId">공고번호: -</p>
+                    </div>
+                </div>
+                <button onclick="closeDetailModal()" class="size-10 flex items-center justify-center rounded-lg hover:bg-[#283039] text-[#9dabb9]">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 overflow-y-auto max-h-[70vh] custom-scrollbar text-sm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-xs text-[#9dabb9]">종목</label>
+                        <div class="text-white font-medium p-3 bg-[#242e38] rounded-lg" id="detailCategory">-</div>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs text-[#9dabb9]">지역</label>
+                        <div class="text-white font-medium p-3 bg-[#242e38] rounded-lg" id="detailRegion">-</div>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs text-[#9dabb9]">추정가격</label>
+                        <div class="text-white font-medium p-3 bg-[#242e38] rounded-lg font-mono" id="detailAmt">-</div>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs text-[#9dabb9]">계약방법</label>
+                        <div class="text-white font-medium p-3 bg-[#242e38] rounded-lg" id="detailMethod">-</div>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs text-[#9dabb9]">특수실적</label>
+                        <div class="text-amber-400 font-medium p-3 bg-[#242e38] rounded-lg" id="detailSpecial">-</div>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs text-[#9dabb9]">입력일</label>
+                        <div class="text-white font-medium p-3 bg-[#242e38] rounded-lg" id="detailDate">-</div>
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs text-[#9dabb9]">적격평가세부기준</label>
+                    <div class="text-slate-300 p-3 bg-[#242e38] rounded-lg leading-relaxed" id="detailCriteria">-</div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-[#3b4754] flex justify-end">
+                <button onclick="closeDetailModal()" class="px-6 h-10 rounded-xl bg-surface-dark border border-[#3b4754] text-white text-sm font-bold hover:bg-[#283039]">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <script src="data.js"></script>
     <script>
         // ──── State ────
         let currentFilters = { regions: [], categories: [], contractMethod: null, specialOnly: false };
         let currentData = [];
+        let displayedData = [];
 
         // ──── Init ────
         document.addEventListener('DOMContentLoaded', () => {
@@ -362,11 +442,38 @@
         // ──── Render ────
         function render() {
             const data = filterData(currentData.length ? currentData : RAW_DATA, currentFilters);
+            displayedData = data;
             renderKPI(data);
+            renderMonthlyChart(data);
             renderCategoryChart(data);
             renderContractChart(data);
             renderHeatmap(data);
             renderTable(data);
+        }
+
+        function renderMonthlyChart(data) {
+            const counts = Array(12).fill(0);
+            data.forEach(r => {
+                if (!r.입력일) return;
+                const d = new Date(r.입력일);
+                if (!isNaN(d.getTime())) counts[d.getMonth()]++;
+            });
+
+            const max = Math.max(1, ...counts);
+            document.getElementById('monthlyChart').innerHTML = counts.map((cnt, i) => {
+                const h = Math.round((cnt / max) * 100);
+                const active = cnt > 0;
+                const barClass = active ? 'bg-primary shadow-[0_0_10px_rgba(19,127,236,0.3)]' : 'bg-[#283039]';
+                const textClass = active ? 'text-white font-bold' : 'text-[#566270]';
+                return `
+                <div class="flex-1 flex flex-col items-center justify-end group">
+                    <span class="text-[10px] mb-1 transition-colors ${textClass}">${cnt > 0 ? cnt : ''}</span>
+                    <div class="w-full mx-1 rounded-t-md transition-all duration-500 relative ${barClass}" style="height:${h}%">
+                        <div class="absolute bottom-0 left-0 right-0 h-1 bg-white/10 rounded-b-md"></div>
+                    </div>
+                    <span class="text-[10px] mt-2 ${active ? 'text-slate-300' : 'text-[#566270]'}">${i + 1}월</span>
+                </div>`;
+            }).join('');
         }
 
         function renderKPI(data) {
@@ -419,7 +526,8 @@
         }
 
         function renderHeatmap(data) {
-            const regions = ['전국', '경기', '서울', '충남', '경북', '전남', '제주'];
+            // Use the global REGIONS list or a comprehensive list covering all areas
+            const regions = ['전국', '서울', '경기', '인천', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '부산', '대구', '광주', '대전', '울산', '세종', '제주'];
             const cats = ['전기', '통신', '소방', '건축', '토목', '기계가스설비'];
             const matrix = {};
             regions.forEach(r => { matrix[r] = {}; cats.forEach(c => matrix[r][c] = 0); });
@@ -455,8 +563,8 @@
         function renderTable(data) {
             document.getElementById('tableCount').textContent = `총 ${data.length}건`;
             const contractBadge = m => m === '적격심사' ? 'bg-primary/20 text-primary' : m === '수의' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20 text-slate-400';
-            document.getElementById('dataTable').innerHTML = data.map(r => `
-    <tr class="border-b border-[#283039] hover:bg-[#242e38] transition-colors">
+            document.getElementById('dataTable').innerHTML = data.map((r, i) => `
+    <tr onclick="openDetailModal(${i})" class="cursor-pointer border-b border-[#283039] hover:bg-[#242e38] transition-colors">
       <td class="px-4 py-3 font-mono text-xs text-[#9dabb9]">${r.공고번호}</td>
       <td class="px-4 py-3 text-sm text-white">${(r.종목 || '-').substring(0, 20)}${r.종목 && r.종목.length > 20 ? '…' : ''}</td>
       <td class="px-4 py-3 text-sm text-slate-300">${r.지역제한 || '-'}</td>
@@ -533,6 +641,46 @@
         function openFilterModal() { document.getElementById('filterModal').classList.remove('hidden'); document.getElementById('filterModal').classList.add('flex'); }
         function closeFilterModal() { document.getElementById('filterModal').classList.add('hidden'); document.getElementById('filterModal').classList.remove('flex'); }
         document.getElementById('filterModal').addEventListener('click', e => { if (e.target === document.getElementById('filterModal')) closeFilterModal(); });
+
+        function openDetailModal(index) {
+            const r = displayedData[index];
+            if (!r) return;
+            document.getElementById('detailModalId').textContent = `공고번호: ${r.공고번호}`;
+            document.getElementById('detailCategory').textContent = r.종목 || '-';
+            document.getElementById('detailRegion').textContent = r.지역제한 || '-';
+            document.getElementById('detailAmt').textContent = formatAmt(r.추정가격 || 0);
+            document.getElementById('detailMethod').textContent = r.계약방법 || '-';
+            document.getElementById('detailSpecial').textContent = r.특수실적 || '-';
+            document.getElementById('detailDate').textContent = r.입력일 || '-';
+            document.getElementById('detailCriteria').textContent = r.적격평가세부기준 || '-';
+            document.getElementById('detailModal').classList.remove('hidden');
+            document.getElementById('detailModal').classList.add('flex');
+        }
+        function closeDetailModal() { document.getElementById('detailModal').classList.add('hidden'); document.getElementById('detailModal').classList.remove('flex'); }
+        document.getElementById('detailModal').addEventListener('click', e => { if (e.target === document.getElementById('detailModal')) closeDetailModal(); });
+
+        function exportToCSV() {
+            if (!displayedData || !displayedData.length) {
+                alert('다운로드할 데이터가 없습니다.');
+                return;
+            }
+            const headers = ['공고번호', '종목', '지역제한', '추정가격', '계약방법', '특수실적', '입력일', '적격평가세부기준'];
+            const rows = displayedData.map(r => {
+                return [
+                    r.공고번호, r.종목, r.지역제한, r.추정가격, r.계약방법, r.특수실적, r.입력일, r.적격평가세부기준
+                ].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(',');
+            });
+            const csvContent = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const today = new Date().toISOString().slice(0, 10);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `발주공고분석_${today}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 </body>
 
