@@ -40,11 +40,28 @@
     .heatmap-cell { @apply flex h-11 items-center justify-center rounded transition-all cursor-pointer border border-transparent hover:border-white/40; }
     .filter-chip { @apply px-4 py-2 rounded-lg border border-[#3b4754] bg-[#242e38] text-sm text-[#9dabb9] hover:bg-[#2f3b46] transition-all cursor-pointer flex items-center justify-center gap-2; }
     .filter-chip.active { @apply border-primary bg-primary/10 text-primary font-bold shadow-[0_0_10px_rgba(19,127,236,0.15)]; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 
 <body
     class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased overflow-hidden">
+    <!-- 로딩 오버레이 -->
+    <div id="loadingOverlay"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex-col items-center justify-center hidden">
+        <div
+            class="bg-surface-dark border border-[#283039] rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl">
+            <div class="relative w-14 h-14">
+                <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin">
+                </div>
+            </div>
+            <div class="text-center">
+                <p class="text-white font-semibold text-base" id="loadingTitle">데이터 수집 중...</p>
+                <p class="text-[#9dabb9] text-sm mt-1" id="loadingStatus">API 서버에 연결하는 중</p>
+            </div>
+        </div>
+    </div>
     <div class="flex h-screen w-full flex-col overflow-hidden relative">
 
         <!-- HEADER -->
@@ -65,20 +82,14 @@
                     <span class="material-symbols-outlined text-[#9dabb9] text-[20px]">calendar_today</span>
                     <span class="text-sm text-slate-300" id="updateTime">업데이트 시간: 로딩중...</span>
                 </div>
-                <!-- 채팅 마법사 버튼 -->
-                <a href="wizard.html"
-                    class="flex items-center justify-center gap-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors h-9 px-4 text-sm font-bold">
-                    <span class="material-symbols-outlined text-[18px]">chat</span>
-                    <span class="hidden sm:inline">AI 조건 설정</span>
-                </a>
-                <button onclick="openFilterModal()"
-                    class="flex items-center justify-center gap-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors h-9 px-4 text-sm font-bold">
-                    <span class="material-symbols-outlined text-[18px]">notifications</span>
-                    <span class="hidden sm:inline">알림</span>
+                <!-- 새로고침 버튼 -->
+                <button onclick="refreshData()" id="refreshBtn"
+                    class="flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 border border-primary/30 hover:border-primary/60 text-primary px-3 py-1.5 rounded-lg transition-all text-sm font-medium active:scale-95"
+                    title="API에서 최신 데이터 재수집">
+                    <span class="material-symbols-outlined text-[18px]" id="refreshIcon">refresh</span>
+                    <span class="hidden md:inline">새로고침</span>
                 </button>
-                <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-9 border border-[#283039]"
-                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCF0HzNwWVPwaesvCnJMjCsy_sVpHl8jupFSiIpAn0_VUvhsfTJjcA-3brt1GWT0rX_GsuGI7OSNLTojRey82lUmayJQ_YLiAoiD8qGMDVK2Vc8LZaQKZq__ag2BB-LZJ1eTxbO_hXHSsGrmxb0uCjYo10S_q-LhdOXlbKBGRAhoWW4nuE8e9Ktl0agcLLN-UHiunlnv1924lV6cqZyiwIU9wOXP1c6J6vbkDP4ziMSVab7BuRd3TJEU0v9jjP5flwfjQqOMBmmmg");'>
-                </div>
+
             </div>
         </header>
 
@@ -103,27 +114,14 @@
                                     </span>
                                     <select id="periodSelect" onchange="setPeriodFromSelect(this.value)"
                                         class="bg-surface-dark text-white text-sm font-medium px-3 py-2 outline-none cursor-pointer hover:bg-[#283039] transition-colors">
-                                        <option value="all">전체</option>
-                                        <option value="1">1월</option>
-                                        <option value="2">2월</option>
-                                        <option value="3">3월</option>
-                                        <option value="4">4월</option>
-                                        <option value="5">5월</option>
-                                        <option value="6">6월</option>
-                                        <option value="7">7월</option>
-                                        <option value="8">8월</option>
-                                        <option value="9">9월</option>
-                                        <option value="10">10월</option>
-                                        <option value="11">11월</option>
-                                        <option value="12">12월</option>
+                                        <option value="1">최근 1개월</option>
+                                        <option value="3" selected>최근 3개월</option>
+                                        <option value="6">최근 6개월</option>
+                                        <option value="12">최근 12개월</option>
+                                        <option value="settings">― 상세설정 ―</option>
                                     </select>
                                 </div>
-                                <!-- 직접 기간 설정 버튼 -->
-                                <button id="btnCustomPeriod"
-                                    class="flex items-center gap-1.5 px-3 py-2 text-sm text-[#9dabb9] border border-[#283039] bg-surface-dark rounded-lg hover:bg-[#283039] hover:text-white transition-all">
-                                    <span class="material-symbols-outlined text-[16px]">date_range</span>
-                                    <span class="text-xs">직접설정</span>
-                                </button>
+
                                 <!-- 구분선 -->
                                 <div class="w-px h-7 bg-[#3b4754]"></div>
                                 <!-- 상세설정 버튼 — 색상으로 명확히 구분 -->
@@ -137,91 +135,43 @@
 
                         <!-- KPI Cards -->
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div
-                                class="p-5 rounded-xl border border-[#3b4754] bg-surface-dark flex items-center justify-between relative overflow-hidden group hover:border-primary/50 transition-all duration-300">
-                                <div class="relative z-10">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <span
-                                            class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/20 text-primary border border-primary/20">총
-                                            공고 금액</span>
-                                    </div>
-                                    <div class="text-2xl font-bold text-white mb-3" id="kpi-amt">-</div>
-                                    <div class="flex items-center gap-4 text-xs text-[#9dabb9]">
-                                        <div><span class="block mb-0.5 text-white font-medium" id="kpi-amt-sub">-</span>
-                                        </div>
-                                        <div class="w-px h-6 bg-[#3b4754]"></div>
-                                        <div><span class="text-emerald-500 font-bold flex items-center gap-0.5"><span
-                                                    class="material-symbols-outlined text-[14px]">arrow_drop_up</span><span
-                                                    id="kpi-amt-rate">-</span></span></div>
-                                    </div>
+                            <!-- 카드 1: 총 공고 금액 -->
+                            <div class="p-5 rounded-xl border border-[#3b4754] bg-surface-dark flex flex-col justify-between group hover:border-primary/50 transition-all duration-300"
+                                style="min-height:115px">
+                                <div class="flex items-center justify-between">
+                                    <span class="material-symbols-outlined text-[22px] text-primary">payments</span>
+                                    <span class="text-xl font-bold text-primary tracking-tight">총 공고 금액</span>
                                 </div>
-                                <div
-                                    class="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-[#242e38] rounded-full text-primary">
-                                    <span class="material-symbols-outlined text-[24px]">payments</span>
-                                </div>
+                                <div class="text-2xl font-bold text-white text-right mt-2" id="kpi-amt">-</div>
                             </div>
-                            <div
-                                class="p-5 rounded-xl border border-[#3b4754] bg-surface-dark flex items-center justify-between relative overflow-hidden group hover:border-purple-500/50 transition-all duration-300">
-                                <div class="relative z-10">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <span
-                                            class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/20">총
-                                            공고 수</span>
-                                    </div>
-                                    <div class="text-2xl font-bold text-white mb-3" id="kpi-count">-</div>
-                                    <div class="flex items-center gap-4 text-xs text-[#9dabb9]">
-                                        <div><span class="block mb-0.5 text-white font-medium">전체 공고</span></div>
-                                        <div class="w-px h-6 bg-[#3b4754]"></div>
-                                        <div><span class="text-emerald-500 font-bold flex items-center gap-0.5"><span
-                                                    class="material-symbols-outlined text-[14px]">arrow_drop_up</span>실데이터</span>
-                                        </div>
-                                    </div>
+                            <!-- 카드 2: 총 공고 수 -->
+                            <div class="p-5 rounded-xl border border-[#3b4754] bg-surface-dark flex flex-col justify-between group hover:border-purple-500/50 transition-all duration-300"
+                                style="min-height:115px">
+                                <div class="flex items-center justify-between">
+                                    <span
+                                        class="material-symbols-outlined text-[22px] text-purple-400">receipt_long</span>
+                                    <span class="text-xl font-bold text-purple-400 tracking-tight">총 공고 수</span>
                                 </div>
-                                <div
-                                    class="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-[#242e38] rounded-full text-purple-500">
-                                    <span class="material-symbols-outlined text-[24px]">receipt_long</span>
-                                </div>
+                                <div class="text-2xl font-bold text-white text-right mt-2" id="kpi-count">-</div>
                             </div>
-                            <div
-                                class="p-5 rounded-xl border border-[#3b4754] bg-surface-dark flex items-center justify-between relative overflow-hidden group hover:border-amber-500/50 transition-all duration-300">
-                                <div class="relative z-10">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <span
-                                            class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/20 text-amber-500 border border-amber-500/20">최다
-                                            발주 기관</span>
-                                    </div>
-                                    <div class="text-2xl font-bold text-white mb-3" id="kpi-topClient">-</div>
-                                    <div class="flex items-center gap-4 text-xs text-[#9dabb9]">
-                                        <div><span class="block mb-0.5 text-white font-medium"
-                                                id="kpi-topClientCnt">-</span></div>
-                                        <div class="w-px h-6 bg-[#3b4754]"></div>
-                                        <div><span class="text-amber-500 font-bold" id="kpi-topClientPct">-</span></div>
-                                    </div>
+                            <!-- 카드 3: 최다 발주 기관 -->
+                            <div class="p-5 rounded-xl border border-[#3b4754] bg-surface-dark flex flex-col justify-between group hover:border-amber-500/50 transition-all duration-300"
+                                style="min-height:115px">
+                                <div class="flex items-center justify-between">
+                                    <span
+                                        class="material-symbols-outlined text-[22px] text-amber-500">corporate_fare</span>
+                                    <span class="text-xl font-bold text-amber-500 tracking-tight">최다 발주 기관</span>
                                 </div>
-                                <div
-                                    class="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-[#242e38] rounded-full text-amber-500">
-                                    <span class="material-symbols-outlined text-[24px]">corporate_fare</span>
-                                </div>
+                                <div class="text-xl font-bold text-white text-right mt-2" id="kpi-topClient">-</div>
                             </div>
-                            <div
-                                class="p-5 rounded-xl border border-[#3b4754] bg-surface-dark flex items-center justify-between relative overflow-hidden group hover:border-emerald-500/50 transition-all duration-300">
-                                <div class="relative z-10">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <span
-                                            class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-500 border border-emerald-500/20">특수실적
-                                            공고</span>
-                                    </div>
-                                    <div class="text-2xl font-bold text-white mb-3" id="kpi-special">-</div>
-                                    <div class="flex items-center gap-4 text-xs text-[#9dabb9]">
-                                        <div><span class="block mb-0.5 text-white font-medium">특수실적 필요</span></div>
-                                        <div class="w-px h-6 bg-[#3b4754]"></div>
-                                        <div><span class="text-emerald-500 font-bold" id="kpi-specialPct">-</span></div>
-                                    </div>
+                            <!-- 카드 4: 특수실적 공고 -->
+                            <div class="p-5 rounded-xl border border-[#3b4754] bg-surface-dark flex flex-col justify-between group hover:border-emerald-500/50 transition-all duration-300"
+                                style="min-height:115px">
+                                <div class="flex items-center justify-between">
+                                    <span class="material-symbols-outlined text-[22px] text-emerald-400">bolt</span>
+                                    <span class="text-xl font-bold text-emerald-400 tracking-tight">특수실적 공고</span>
                                 </div>
-                                <div
-                                    class="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-[#242e38] rounded-full text-emerald-500">
-                                    <span class="material-symbols-outlined text-[24px]">bolt</span>
-                                </div>
+                                <div class="text-2xl font-bold text-white text-right mt-2" id="kpi-special">-</div>
                             </div>
                         </div>
 
@@ -233,8 +183,9 @@
                                     <div class="bg-primary/20 p-2 rounded-lg text-primary"><span
                                             class="material-symbols-outlined">ssid_chart</span></div>
                                     <div>
-                                        <h3 class="text-lg font-bold text-white">12개월 통합 추이 분석</h3>
-                                        <p class="text-xs text-[#9dabb9] mt-0.5">최근 1년 간의 공고 건수 및 금액 변화 추이</p>
+                                        <h3 class="text-lg font-bold text-white" id="trendTitle">12개월 통합 추이 분석</h3>
+                                        <p class="text-xs text-[#9dabb9] mt-0.5" id="trendSubtitle">최근 1년 간의 공고 건수 및 금액
+                                            변화 추이</p>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-4 text-sm text-[#9dabb9]">
@@ -359,10 +310,17 @@
                         <p class="text-xs text-[#9dabb9] mt-0.5">분석에 포함할 상세 필터링 조건을 선택하십시오.</p>
                     </div>
                 </div>
-                <button onclick="closeFilterModal()"
-                    class="size-10 flex items-center justify-center rounded-lg hover:bg-[#283039] text-[#9dabb9] transition-colors">
-                    <span class="material-symbols-outlined text-[24px]">close</span>
-                </button>
+                <div class="flex items-center gap-2">
+                    <a href="wizard.html"
+                        class="flex items-center justify-center gap-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors h-9 px-4 text-sm font-bold">
+                        <span class="material-symbols-outlined text-[18px]">chat</span>
+                        <span>AI 조건 설정</span>
+                    </a>
+                    <button onclick="closeFilterModal()"
+                        class="size-10 flex items-center justify-center rounded-lg hover:bg-[#283039] text-[#9dabb9] transition-colors">
+                        <span class="material-symbols-outlined text-[24px]">close</span>
+                    </button>
+                </div>
             </div>
             <div class="flex flex-1 overflow-hidden">
                 <!-- Sidebar -->
@@ -381,70 +339,117 @@
                         <span class="material-symbols-outlined text-[20px]">corporate_fare</span><span
                             class="text-sm">발주처</span>
                     </button>
-                    <button onclick="switchTab('특수실적')" id="tab-특수실적"
-                        class="flex items-center gap-3 px-4 py-3 rounded-lg text-[#9dabb9] hover:bg-[#283039] transition-all">
-                        <span class="material-symbols-outlined text-[20px]">military_tech</span><span
-                            class="text-sm">특수실적</span>
-                    </button>
                     <button onclick="switchTab('금액범위')" id="tab-금액범위"
                         class="flex items-center gap-3 px-4 py-3 rounded-lg text-[#9dabb9] hover:bg-[#283039] transition-all">
                         <span class="material-symbols-outlined text-[20px]">payments</span><span
                             class="text-sm">금액범위</span>
                     </button>
+                    <button onclick="switchTab('특수실적')" id="tab-특수실적"
+                        class="flex items-center gap-3 px-4 py-3 rounded-lg text-[#9dabb9] hover:bg-[#283039] transition-all">
+                        <span class="material-symbols-outlined text-[20px]">military_tech</span><span
+                            class="text-sm">특수실적</span>
+                    </button>
+                    <button onclick="switchTab('기간')" id="tab-기간"
+                        class="flex items-center gap-3 px-4 py-3 rounded-lg text-[#9dabb9] hover:bg-[#283039] transition-all">
+                        <span class="material-symbols-outlined text-[20px]">calendar_month</span><span
+                            class="text-sm">기간</span>
+                    </button>
                 </div>
                 <!-- Content -->
                 <div class="flex-1 flex flex-col bg-surface-dark overflow-hidden">
-                    <div class="p-5 border-b border-[#3b4754]/50">
-                        <div class="relative group">
-                            <span
-                                class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#9dabb9] group-focus-within:text-primary transition-colors">search</span>
-                            <input id="filterSearch" oninput="renderFilterChips()"
-                                class="w-full bg-surface-darker border border-[#3b4754] rounded-xl pl-12 pr-4 py-3 text-sm text-white placeholder:text-[#5e6c7c] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                                placeholder="검색..." type="text" />
+
+
+                    <!-- 기간 탭 전용 패널 -->
+                    <div id="periodPanel" class="flex-1 overflow-y-auto p-6 custom-scrollbar" style="display:none">
+                        <div class="flex flex-col gap-6">
+                            <!-- 빠른 선택 -->
+                            <div>
+                                <div
+                                    class="text-[11px] font-bold text-[#9dabb9] uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-[14px]">bolt</span>빠른 선택 (오늘 기준)
+                                </div>
+                                <div class="flex flex-wrap gap-2" id="periodQuickBtns">
+                                    <button onclick="setQuickPeriod(1)" data-m="1"
+                                        class="period-quick-btn px-4 py-2 rounded-lg text-sm border border-[#3b4754] text-[#9dabb9] hover:border-primary hover:text-primary hover:bg-primary/10 transition-all">1개월</button>
+                                    <button onclick="setQuickPeriod(2)" data-m="2"
+                                        class="period-quick-btn px-4 py-2 rounded-lg text-sm border border-[#3b4754] text-[#9dabb9] hover:border-primary hover:text-primary hover:bg-primary/10 transition-all">2개월</button>
+                                    <button onclick="setQuickPeriod(3)" data-m="3"
+                                        class="period-quick-btn px-4 py-2 rounded-lg text-sm border border-[#3b4754] text-[#9dabb9] hover:border-primary hover:text-primary hover:bg-primary/10 transition-all">3개월</button>
+                                    <button onclick="setQuickPeriod(6)" data-m="6"
+                                        class="period-quick-btn px-4 py-2 rounded-lg text-sm border border-[#3b4754] text-[#9dabb9] hover:border-primary hover:text-primary hover:bg-primary/10 transition-all">6개월</button>
+                                    <button onclick="setQuickPeriod(9)" data-m="9"
+                                        class="period-quick-btn px-4 py-2 rounded-lg text-sm border border-[#3b4754] text-[#9dabb9] hover:border-primary hover:text-primary hover:bg-primary/10 transition-all">9개월</button>
+                                    <button onclick="setQuickPeriod(12)" data-m="12"
+                                        class="period-quick-btn px-4 py-2 rounded-lg text-sm border border-[#3b4754] text-[#9dabb9] hover:border-primary hover:text-primary hover:bg-primary/10 transition-all">12개월</button>
+                                    <button onclick="setQuickPeriod(0)" data-m="0"
+                                        class="period-quick-btn px-4 py-2 rounded-lg text-sm border border-[#3b4754] text-[#9dabb9] hover:border-[#9dabb9] hover:text-white hover:bg-[#283039] transition-all">전체</button>
+                                </div>
+                            </div>
+                            <!-- 선택된 기간 표시 -->
+                            <div id="periodSummaryBox"
+                                class="hidden rounded-xl bg-primary/10 border border-primary/30 px-4 py-3 flex items-center gap-3">
+                                <span class="material-symbols-outlined text-primary text-[18px]">event</span>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-[#9dabb9]">선택된 기간</span>
+                                    <span class="text-sm font-bold text-primary" id="periodSummaryText"></span>
+                                </div>
+                                <button onclick="clearPeriod()"
+                                    class="ml-auto text-[#9dabb9] hover:text-white transition-colors">
+                                    <span class="material-symbols-outlined text-[16px]">close</span>
+                                </button>
+                            </div>
+                            <!-- 직접 기간 설정 -->
+                            <div>
+                                <div
+                                    class="text-[11px] font-bold text-[#9dabb9] uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-[14px]">date_range</span>직접 기간 설정
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="flex flex-col gap-1.5">
+                                        <label class="text-xs text-[#9dabb9]">시작일</label>
+                                        <input type="date" id="periodStart" onchange="onCustomPeriodChange()"
+                                            class="w-full bg-surface-darker border border-[#3b4754] rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all [color-scheme:dark]" />
+                                    </div>
+                                    <div class="flex flex-col gap-1.5">
+                                        <label class="text-xs text-[#9dabb9]">종료일</label>
+                                        <input type="date" id="periodEnd" onchange="onCustomPeriodChange()"
+                                            class="w-full bg-surface-darker border border-[#3b4754] rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all [color-scheme:dark]" />
+                                    </div>
+                                </div>
+                                <button onclick="applyCustomPeriod()"
+                                    class="mt-3 w-full py-2.5 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/20 transition-all flex items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined text-[16px]">check</span>이 기간으로 설정
+                                </button>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- 지역 탭 전용: 광역시도 + 시군구 드릴다운 -->
-                    <div id="regionPanel" class="flex-1 flex flex-col overflow-hidden">
-                        <!-- 광역시도 그리드 (스크롤) -->
-                        <div class="overflow-y-auto custom-scrollbar p-5 flex-shrink-0" style="max-height:52%">
-                            <div class="flex items-center justify-between mb-3">
-                                <h4 class="text-sm font-bold text-white flex items-center gap-2">
-                                    <span class="w-1 h-3 bg-primary rounded-full"></span>
-                                    전체 지역 리스트
-                                    <span class="text-xs text-[#9dabb9] font-normal">클릭하면 시군구 표시</span>
-                                </h4>
-                                <div class="flex items-center gap-3">
-                                    <button onclick="selectAll()" class="text-xs text-primary hover:underline">전체
-                                        선택</button>
-                                    <button onclick="clearCurrentTab()"
-                                        class="text-xs text-[#9dabb9] hover:text-white">선택 해제</button>
-                                </div>
+                    <!-- 지역 탭 전용: 도·특별시 + 시군구 2단 드릴다운 (종목과 동일 방식) -->
+                    <div id="regionPanel" class="flex-1 flex overflow-hidden">
+                        <!-- 1. 도·특별시 목록 -->
+                        <div class="w-72 border-r border-[#3b4754] flex flex-col flex-shrink-0">
+                            <div
+                                class="px-3 py-2.5 text-[11px] font-bold text-[#9dabb9] uppercase tracking-wider bg-surface-darker/50 border-b border-[#3b4754] flex items-center justify-between">
+                                <span>1. 도·특별시</span>
                             </div>
-                            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2" id="regionChipGrid"></div>
+                            <div class="flex-1 overflow-y-auto custom-scrollbar" id="regionL1List"></div>
                         </div>
-                        <!-- 시군구 세부 패널 (접히는 구조) -->
-                        <div id="subRegionPanel" class="border-t border-[#3b4754] flex flex-col flex-1 overflow-hidden"
-                            style="display:none">
-                            <div class="px-5 pt-4 pb-2 flex items-center justify-between flex-shrink-0">
-                                <h4 class="text-sm font-bold text-white flex items-center gap-2">
-                                    <span class="w-1 h-3 bg-emerald-500 rounded-full"></span>
-                                    <span id="subRegionTitle">세부 지역</span>
-                                </h4>
-                                <div class="flex items-center gap-3">
-                                    <button onclick="selectAllSub()" class="text-xs text-emerald-500 hover:underline">전체
-                                        선택</button>
-                                    <button onclick="clearSub()" class="text-xs text-[#9dabb9] hover:text-white">선택
-                                        해제</button>
-                                    <button onclick="selectedParentRegion=null;renderRegionPanel();"
-                                        class="text-xs text-[#9dabb9] hover:text-white flex items-center gap-0.5">
-                                        <span class="material-symbols-outlined text-[14px]">close</span>닫기
-                                    </button>
+                        <!-- 2. 시군구 목록 -->
+                        <div class="flex-1 flex flex-col">
+                            <div
+                                class="px-3 py-2.5 text-[11px] font-bold text-[#9dabb9] uppercase tracking-wider bg-surface-darker/50 border-b border-[#3b4754] flex items-center justify-between flex-shrink-0">
+                                <span id="regionL2Title">2. 시·군·구</span>
+                                <div class="flex gap-2">
+                                    <button onclick="selectAllSub()"
+                                        class="text-[10px] text-primary hover:underline normal-case">전체</button>
+                                    <button onclick="clearSub()"
+                                        class="text-[10px] text-[#9dabb9] hover:text-white normal-case">해제</button>
                                 </div>
                             </div>
-                            <div class="overflow-y-auto custom-scrollbar px-5 pb-5 flex-1">
-                                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"
-                                    id="subRegionChipGrid"></div>
+                            <div class="flex-1 overflow-y-auto custom-scrollbar" id="regionL2List">
+                                <div
+                                    class="flex flex-col h-full items-center justify-center text-[#9dabb9] text-xs gap-2 p-4">
+                                    <span class="material-symbols-outlined text-[28px]">arrow_back</span>도·특별시를 선택하세요
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -452,7 +457,7 @@
                     <!-- 종목 탭 전용: 대분류 → 업종 → 주력분야 3단 드릴다운 -->
                     <div id="categoryPanel" class="flex-1 flex overflow-hidden" style="display:none">
                         <!-- 1. 대분류 -->
-                        <div class="w-36 border-r border-[#3b4754] flex flex-col flex-shrink-0">
+                        <div class="flex-1 border-r border-[#3b4754] flex flex-col">
                             <div
                                 class="px-3 py-2.5 text-[11px] font-bold text-[#9dabb9] uppercase tracking-wider bg-surface-darker/50 border-b border-[#3b4754]">
                                 1. 시설공사</div>
@@ -498,7 +503,91 @@
                         </div>
                     </div>
 
-                    <!-- 일반 탭 (발주처 / 특수실적 / 금액범위) -->
+                    <!-- 금액범위 전용 패널 -->
+                    <div id="amtPanel" class="flex-1 overflow-y-auto p-6 custom-scrollbar" style="display:none">
+                        <div class="flex flex-col gap-6">
+                            <!-- 빠른 선택 -->
+                            <div>
+                                <div
+                                    class="text-[11px] font-bold text-[#9dabb9] uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-[14px]">bolt</span>빠른 선택
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <button onclick="setQuickAmt(null,10,'10억 미만')" data-amt="a"
+                                        class="amt-quick-btn px-4 py-2 rounded-lg text-sm border border-[#3b4754] text-[#9dabb9] hover:border-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all">10억
+                                        미만</button>
+                                    <button onclick="setQuickAmt(10,50,'10억~50억')" data-amt="b"
+                                        class="amt-quick-btn px-4 py-2 rounded-lg text-sm border border-[#3b4754] text-[#9dabb9] hover:border-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all">10억~50억</button>
+                                    <button onclick="setQuickAmt(50,100,'50억~100억')" data-amt="c"
+                                        class="amt-quick-btn px-4 py-2 rounded-lg text-sm border border-[#3b4754] text-[#9dabb9] hover:border-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all">50억~100억</button>
+                                    <button onclick="setQuickAmt(100,300,'100억~300억')" data-amt="d"
+                                        class="amt-quick-btn px-4 py-2 rounded-lg text-sm border border-[#3b4754] text-[#9dabb9] hover:border-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all">100억~300억</button>
+                                    <button onclick="setQuickAmt(300,500,'300억~500억')" data-amt="e"
+                                        class="amt-quick-btn px-4 py-2 rounded-lg text-sm border border-[#3b4754] text-[#9dabb9] hover:border-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all">300억~500억</button>
+                                    <button onclick="setQuickAmt(500,1000,'500억~1,000억')" data-amt="f"
+                                        class="amt-quick-btn px-4 py-2 rounded-lg text-sm border border-[#3b4754] text-[#9dabb9] hover:border-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all">500억~1,000억</button>
+                                    <button onclick="setQuickAmt(1000,null,'1,000억 이상')" data-amt="g"
+                                        class="amt-quick-btn px-4 py-2 rounded-lg text-sm border border-[#3b4754] text-[#9dabb9] hover:border-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all">1,000억
+                                        이상</button>
+                                    <button onclick="clearAmt()"
+                                        class="amt-quick-btn px-4 py-2 rounded-lg text-sm border border-[#3b4754] text-[#9dabb9] hover:border-[#9dabb9] hover:text-white hover:bg-[#283039] transition-all">전체</button>
+                                </div>
+                            </div>
+                            <!-- 선택된 금액 표시 -->
+                            <div id="amtSummaryBox"
+                                class="hidden rounded-xl bg-amber-500/10 border border-amber-500/30 px-4 py-3 flex items-center gap-3">
+                                <span class="material-symbols-outlined text-amber-400 text-[18px]">payments</span>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-[#9dabb9]">선택된 금액 범위</span>
+                                    <span class="text-sm font-bold text-amber-400" id="amtSummaryText"></span>
+                                </div>
+                                <button onclick="clearAmt()"
+                                    class="ml-auto text-[#9dabb9] hover:text-white transition-colors">
+                                    <span class="material-symbols-outlined text-[16px]">close</span>
+                                </button>
+                            </div>
+                            <!-- 직접 입력 -->
+                            <div>
+                                <div
+                                    class="text-[11px] font-bold text-[#9dabb9] uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-[14px]">tune</span>직접 금액 입력 (억 단위)
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="flex flex-col gap-1.5">
+                                        <label class="text-xs text-[#9dabb9]">최소 금액 (억)</label>
+                                        <input type="number" id="amtMin" min="0" placeholder="0"
+                                            class="w-full bg-surface-darker border border-[#3b4754] rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 transition-all" />
+                                    </div>
+                                    <div class="flex flex-col gap-1.5">
+                                        <label class="text-xs text-[#9dabb9]">최대 금액 (억, 비워두면 제한 없음)</label>
+                                        <input type="number" id="amtMax" min="0" placeholder="제한없음"
+                                            class="w-full bg-surface-darker border border-[#3b4754] rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 transition-all" />
+                                    </div>
+                                </div>
+                                <button onclick="applyCustomAmt()"
+                                    class="mt-3 w-full py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm font-medium hover:bg-amber-500/20 transition-all flex items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined text-[16px]">check</span>이 금액대로 설정
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 발주처 단순 목록 패널 -->
+                    <div id="clientPanel" class="flex-1 flex flex-col overflow-hidden" style="display:none">
+                        <div
+                            class="px-3 py-2.5 text-[11px] font-bold text-[#9dabb9] uppercase tracking-wider bg-surface-darker/50 border-b border-[#3b4754] flex items-center justify-between flex-shrink-0">
+                            <span>발주처 목록</span>
+                            <div class="flex gap-3">
+                                <button onclick="selectAllClients()"
+                                    class="text-[10px] text-primary hover:underline normal-case">전체</button>
+                                <button onclick="clearAllClients()"
+                                    class="text-[10px] text-[#9dabb9] hover:text-white normal-case">해제</button>
+                            </div>
+                        </div>
+                        <div class="flex-1 overflow-y-auto custom-scrollbar" id="clientList"></div>
+                    </div>
+
+                    <!-- 일반 탭 (특수실적) -->
                     <div id="generalPanel" class="flex-1 overflow-y-auto p-5 custom-scrollbar" style="display:none">
                         <div class="flex items-center justify-between mb-4">
                             <h4 class="text-sm font-bold text-white flex items-center gap-2">
@@ -514,12 +603,26 @@
                         </div>
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" id="filterChipGrid"></div>
                     </div>
+                    <!-- 검색창 (콘텐츠 하단) -->
+                    <div class="px-4 py-3 border-t border-[#3b4754]/50 flex-shrink-0">
+                        <div class="relative group">
+                            <span
+                                class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#9dabb9] group-focus-within:text-primary transition-colors text-[18px]">search</span>
+                            <input id="filterSearch" oninput="renderFilterChips()"
+                                class="w-full bg-surface-darker border border-[#3b4754] rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder:text-[#5e6c7c] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                                placeholder="검색..." type="text" />
+                        </div>
+                    </div>
+                    <!-- 검색 결과 패널 (검색창 바로 아래, 검색어 있을 때만 표시) -->
+                    <div id="searchResultsPanel" style="display:none;max-height:200px"
+                        class="border-t border-[#3b4754]/50 overflow-y-auto custom-scrollbar flex-shrink-0 bg-[#0f1923]">
+                    </div>
                 </div>
             </div>
-            <div class="px-6 py-3 border-t border-[#3b4754] bg-surface-darker/30 flex flex-col gap-3">
-                <!-- 선택된 항목 태그 목록 -->
-                <div id="selectedTagsRow" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto custom-scrollbar"
-                    style="min-height:28px">
+            <!-- 선택된 항목 태그 목록 (카테고리별 그룹) -->
+            <div class="px-6 py-3 border-t border-[#3b4754] bg-surface-darker/30 flex flex-col gap-2">
+                <div id="selectedTagsRow" class="flex flex-col gap-1.5 max-h-24 overflow-y-auto custom-scrollbar"
+                    style="min-height:24px">
                     <span class="text-xs text-[#5e6c7c] self-center" id="selectedTagsEmpty">선택된 항목 없음</span>
                 </div>
                 <!-- 버튼 행 -->
@@ -533,7 +636,8 @@
         </div>
     </div>
 
-    <script src="data.js"></script>
+
+
     <script>
         // ─── State ───
         let currentFilters = { regions: [], categories: [], clients: [], specialOnly: false };
@@ -628,15 +732,152 @@
             '종목': { key: 'categories', label: '전체 종목 리스트', items: [] },  // 드릴다운 UI로 대체 (items 미사용)
             '발주처': { key: 'clients', label: '발주처 리스트', items: [] },
             '특수실적': { key: 'special', label: '특수실적 여부', items: ['특수실적 있음', '특수실적 없음'] },
-            '금액범위': { key: 'amtRange', label: '금액 범위 선택', items: ['10억 미만', '10억~50억', '50억~100억', '100억~300억', '300억~500억', '500억~1,000억', '1,000억 이상'] },
+            '금액범위': { key: 'amtRange', label: '금액 범위 선택', items: [] },
         };
 
-        // ─── Init ───
-        document.addEventListener('DOMContentLoaded', () => {
-            // 동적 옵션 생성
-            TAB_OPTS['종목'].items = [...new Set(RAW_DATA.map(r => (r.종목 || '').split(/[\/,(]/)[0].trim()).filter(Boolean))].sort();
-            TAB_OPTS['발주처'].items = [...new Set(RAW_DATA.map(r => extractClient(r.적격평가세부기준)))].sort();
+        // ─── API 설정 ───
+        const API_BASE = 'https://bidding2.kr/api2/module/consortiumAPI/searchBidDataByDate_get.php';
+        const API_KEY = 'happy304';
 
+        // 오늘 기준 최근 N개월 날짜 범위 계산
+        // DB 내 가장 최근 입력일을 기준 날짜로 반환
+        function getLatestDate() {
+            if (!RAW_DATA || RAW_DATA.length === 0) return new Date();
+            const max = RAW_DATA.reduce((best, r) => {
+                const d = new Date(r.입력일);
+                return d > best ? d : best;
+            }, new Date('1970-01-01'));
+            return max;
+        }
+
+        function getPeriodRange(monthNum) {
+            const m = parseInt(monthNum) || 3;
+            // API 호출 시점은 아직 RAW_DATA가 없을 수 있으므로 오늘 날짜 사용
+            const today = new Date();
+            const end = new Date(today);
+            const start = new Date(today);
+            start.setMonth(start.getMonth() - m);
+            start.setDate(start.getDate() + 1);
+            const fmt = d => d.toISOString().slice(0, 10);
+            return { startDate: fmt(start), endDate: fmt(end) };
+        }
+
+        // 해당 기간의 월 목록 생성 (트렌드 차트용)
+        function getMonthsInRange(startDate, endDate) {
+            const months = [];
+            const s = new Date(startDate.slice(0, 7) + '-01');
+            const e = new Date(endDate.slice(0, 7) + '-01');
+            while (s <= e) {
+                months.push({ year: s.getFullYear(), month: s.getMonth() + 1 });
+                s.setMonth(s.getMonth() + 1);
+            }
+            return months;
+        }
+
+        function processRow(row) {
+            const special = (row.특수실적 === '' || row.특수실적 == null) ? null : row.특수실적;
+            const dateStr = (row.입력일 || '').split(' ')[0];
+            return {
+                공고번호: row.공고번호 || '',
+                추정가격: parseInt(row.추정가격) || 0,
+                지역제한: row.지역제한 || '',
+                종목: row.종목 || '',
+                특수실적: special,
+                계약방법: row.계약방법 || '',
+                적격평가세부기준: row.적격평가세부기준 || null,
+                입력일: dateStr,
+            };
+        }
+
+        function showLoading(title, status) {
+            const el = document.getElementById('loadingOverlay');
+            el.classList.remove('hidden');
+            el.classList.add('flex');
+            document.getElementById('loadingTitle').textContent = title || '데이터 수집 중...';
+            document.getElementById('loadingStatus').textContent = status || 'API 서버에 연결하는 중';
+            const btn = document.getElementById('refreshBtn');
+            if (btn) btn.disabled = true;
+            const icon = document.getElementById('refreshIcon');
+            if (icon) icon.style.animation = 'spin 1s linear infinite';
+        }
+
+        function hideLoading() {
+            const el = document.getElementById('loadingOverlay');
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+            const btn = document.getElementById('refreshBtn');
+            if (btn) btn.disabled = false;
+            const icon = document.getElementById('refreshIcon');
+            if (icon) icon.style.animation = '';
+        }
+
+        async function fetchAPIData(monthNum) {
+            const { startDate, endDate } = getPeriodRange(monthNum);
+            const allData = [];
+            showLoading(`최근 ${monthNum}개월 데이터 수집 중`, `${startDate} ~ ${endDate} API 조회 중...`);
+
+            try {
+                for (let page = 1; page <= 200; page++) {
+                    const url = `${API_BASE}?moduleKey=${API_KEY}&startDate=${startDate}&endDate=${endDate}&page=${page}`;
+                    document.getElementById('loadingStatus').textContent = `${startDate} ~ ${endDate} / ${page}페이지 수집 중 (${allData.length}건)`;
+
+                    const resp = await fetch(url);
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    const json = await resp.json();
+
+                    if (!Array.isArray(json) || json.length === 0) break;
+                    allData.push(...json.map(processRow));
+                }
+
+                RAW_DATA = allData;
+
+                // 동적 옵션 갱신
+                TAB_OPTS['종목'].items = [...new Set(RAW_DATA.map(r => (r.종목 || '').split(/[\/,(]/)[0].trim()).filter(Boolean))].sort();
+                TAB_OPTS['발주처'].items = [...new Set(RAW_DATA.map(r => extractClient(r.적격평가세부기준)))].sort();
+
+                const now = new Date();
+                const ts = now.toLocaleDateString('ko-KR') + ' ' + now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+                document.getElementById('updateTime').textContent = `갱신: ${ts} (${RAW_DATA.length.toLocaleString()}건)`;
+
+                return true;
+            } catch (err) {
+                console.warn('API 오류 (로컬 데이터 사용):', err.message);
+                document.getElementById('loadingStatus').textContent = '로컬 data.json 로딩 중...';
+                return false;
+            }
+        }
+
+        async function loadLocalJSON() {
+            // data.json fetch (API 실패 시 폴백)
+            try {
+                document.getElementById('loadingStatus').textContent = 'data.json 로딩 중...';
+                const resp = await fetch('data.json?v=' + Date.now());
+                if (!resp.ok) throw new Error('data.json 없음');
+                const rawArr = await resp.json();
+                RAW_DATA = rawArr.map(processRow);
+                TAB_OPTS['종목'].items = [...new Set(RAW_DATA.map(r => (r.종목 || '').split(/[\/,(]/)[0].trim()).filter(Boolean))].sort();
+                TAB_OPTS['발주처'].items = [...new Set(RAW_DATA.map(r => extractClient(r.적격평가세부기준)))].sort();
+                document.getElementById('updateTime').textContent = `로컬 데이터: ${RAW_DATA.length.toLocaleString()}건`;
+                return true;
+            } catch (e2) {
+                console.error('data.json 로드 실패:', e2);
+                document.getElementById('updateTime').textContent = '데이터 없음 - 새로고침 필요';
+                return false;
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function refreshData() {
+            const m = parseInt(currentFilters.period) || 3;
+            const ok = await fetchAPIData(m);
+            if (!ok) await loadLocalJSON();
+            hideLoading();
+            render();
+        }
+
+        // ─── Init ───
+        document.addEventListener('DOMContentLoaded', async () => {
             // URL 파라미터에서 마법사 조건 읽기
             const params = new URLSearchParams(window.location.search);
             if (params.get('cats')) currentFilters.categories = params.get('cats').split(',');
@@ -644,26 +885,74 @@
             if (params.get('contract')) currentFilters.contract = params.get('contract');
             if (params.get('maxAmt')) currentFilters.maxAmt = parseInt(params.get('maxAmt'));
 
-            document.getElementById('updateTime').textContent = '업데이트 시간: 2025-01-03 기준';
-            render();
+            // 기본 period = 3개월
+            currentFilters.period = currentFilters.period || '3';
+            const selEl = document.getElementById('periodSelect');
+            if (selEl) selEl.value = currentFilters.period;
+
+            // ① 1순위: 로컬 data.json (바로 렌더)
+            showLoading('데이터 로딩 중', 'data.json 로딩 중...');
+            const localOk = await loadLocalJSON();
+            if (localOk) {
+                render(); // 즉시 렌더
+                // ② 백그라운드에서 API 최신화 시도 (실패해도 무관)
+                fetchAPIData(currentFilters.period).then(apiOk => {
+                    if (apiOk) { hideLoading(); render(); }
+                }).catch(() => { });
+            } else {
+                // 로컬 JSON도 없으면 API 시도
+                showLoading('API에서 데이터 수집 중', '잠시 기다려주세요...');
+                const apiOk = await fetchAPIData(currentFilters.period);
+                hideLoading();
+                if (apiOk) render();
+                else {
+                    document.getElementById('updateTime').textContent = '⚠️ 데이터 없음 - python fetch_api_data.py 실행 필요';
+                }
+            }
         });
 
-        // ─── Period ───
-        function setPeriod(p, btn) {
-            document.querySelectorAll('.flex.flex-wrap.items-center.gap-1 button').forEach(b => {
-                b.className = 'px-3 py-1.5 text-sm text-[#9dabb9] hover:text-white hover:bg-[#283039] rounded-md transition-colors';
-            });
-            btn.className = 'px-3 py-1.5 text-sm font-bold text-white bg-primary rounded-md shadow-sm';
-            currentFilters.period = p;
+
+
+
+        async function setPeriodFromSelect(val) {
+            if (val === 'settings') {
+                // 선택 전으로 되돌리고 모달 열기
+                document.getElementById('periodSelect').value = currentFilters.period || '12';
+                openFilterModal('기간');
+                return;
+            }
+            // 기간이 바뀌면 → 해당 기간의 API 데이터 재수집
+            // 기간이 바뀌면 피고 날자 범위 다시 계산
+            currentFilters.dateRange = null; // 상세설정 초기화
+            currentFilters.period = val;
+            await fetchAPIData(val);
             render();
         }
 
         // ─── Main render ───
         function render() {
+            if (!RAW_DATA || RAW_DATA.length === 0) return;
             let data = RAW_DATA;
-            if (currentFilters.period && currentFilters.period !== 'all') {
-                const m = parseInt(currentFilters.period);
-                if (m <= 12) data = data.filter(r => new Date(r.입력일).getMonth() + 1 === m);
+            const m = parseInt(currentFilters.period);
+            if (currentFilters.period && !isNaN(m)) {
+                // DB 최신 날짜 기준으로 N개월 전 ~ 최신날짜 범위 필터
+                const latestDate = getLatestDate();
+                const endDate = new Date(latestDate);
+                const startDate = new Date(latestDate);
+                startDate.setMonth(startDate.getMonth() - m);
+                startDate.setDate(startDate.getDate() + 1);
+                data = data.filter(r => {
+                    const d = new Date(r.입력일);
+                    return d >= startDate && d <= endDate;
+                });
+            } else if (currentFilters.dateRange) {
+                // 상세설정 직접 기간 적용
+                const start = new Date(currentFilters.dateRange.start);
+                const end = new Date(currentFilters.dateRange.end);
+                data = data.filter(r => {
+                    const d = new Date(r.입력일);
+                    return d >= start && d <= end;
+                });
             }
             data = filterData(data, currentFilters);
             renderKPI(data);
@@ -673,6 +962,65 @@
             updateFilterLabels();
         }
 
+        // ─── 데이터 필터 헬퍼 (data.js 제거 후 index.html 내장) ───
+        function extractClient(txt) {
+            if (!txt) return '기타';
+            const m = txt.match(/【([^】]+)】/) || txt.match(/\[([^\]]+)\]/);
+            if (m) return m[1].trim();
+            const parts = txt.split(/[\/,·]/);
+            return (parts[0] || '기타').trim() || '기타';
+        }
+
+        function formatAmt(n) {
+            const t = Math.floor(n / 1e12);
+            const b = Math.floor((n % 1e12) / 1e8);
+            if (t > 0) return t + '조 ' + (b > 0 ? b + '억' : '');
+            if (b > 0) return b + '억';
+            if (n >= 1e6) return Math.round(n / 1e6) + '백만';
+            if (n > 0) return n.toLocaleString() + '원';
+            return '-';
+        }
+
+        function filterData(data, filters) {
+            return data.filter(row => {
+                // 지역 필터
+                if (filters.regions && filters.regions.length > 0) {
+                    const regionText = row.지역제한 || '';
+                    const matched = filters.regions.some(fr => {
+                        const parts = fr.split(' ');
+                        const parentVals = REGION_MAP[parts[0]] || [parts[0]];
+                        if (!parentVals.some(rv => regionText.includes(rv))) return false;
+                        if (parts.length === 1) return true;
+                        const sub = parts.slice(1).join(' ');
+                        return regionText.includes(sub);
+                    });
+                    if (!matched && !filters.regions.includes('전국')) return false;
+                }
+                // 종목 필터
+                if (filters.categories && filters.categories.length > 0) {
+                    const jong = row.종목 || '';
+                    const matched = filters.categories.some(fc => {
+                        const vals = CATEGORY_MAP[fc] || [fc];
+                        return vals.some(cv => jong.includes(cv));
+                    });
+                    if (!matched) return false;
+                }
+                // 발주처 필터
+                if (filters.clients && filters.clients.length > 0) {
+                    const c = extractClient(row.적격평가세부기준);
+                    if (!filters.clients.includes(c)) return false;
+                }
+                // 특수실적
+                if (filters.specialOnly && !row.특수실적) return false;
+                // 계약방법
+                if (filters.contractMethod && row.계약방법 !== filters.contractMethod) return false;
+                // 금액 범위
+                if (filters.minAmt && (row.추정가격 || 0) < filters.minAmt) return false;
+                if (filters.maxAmt && (row.추정가격 || 0) > filters.maxAmt) return false;
+                return true;
+            });
+        }
+
         // ─── KPI ───
         function renderKPI(data) {
             const totalAmt = data.reduce((s, r) => s + (r.추정가격 || 0), 0);
@@ -680,56 +1028,124 @@
             const cc = {}; data.forEach(r => { const c = extractClient(r.적격평가세부기준); cc[c] = (cc[c] || 0) + 1; });
             const top = Object.entries(cc).sort((a, b) => b[1] - a[1])[0] || ['없음', 0];
 
-            const topCat = {};
-            data.forEach(r => { if (!r.종목) return; const k = r.종목.split(/[\/,(]/)[0].trim(); topCat[k] = (topCat[k] || 0) + 1; });
-            const topCatEntry = Object.entries(topCat).sort((a, b) => b[1] - a[1])[0] || ['-', 0];
-
-            document.getElementById('kpi-amt').textContent = formatAmt(totalAmt);
-            document.getElementById('kpi-amt-sub').textContent = topCatEntry[0] + ' 위주';
-            document.getElementById('kpi-amt-rate').textContent = '실데이터';
-            document.getElementById('kpi-count').textContent = data.length + '건';
-            document.getElementById('kpi-topClient').textContent = top[0];
-            document.getElementById('kpi-topClientCnt').textContent = top[1] + '건 발주';
-            document.getElementById('kpi-topClientPct').textContent = '비중 ' + Math.round(top[1] / Math.max(data.length, 1) * 100) + '%';
-            document.getElementById('kpi-special').textContent = special + '건';
-            document.getElementById('kpi-specialPct').textContent = Math.round(special / Math.max(data.length, 1) * 100) + '% 해당';
+            const el = id => document.getElementById(id);
+            if (el('kpi-amt')) el('kpi-amt').textContent = formatAmt(totalAmt);
+            if (el('kpi-count')) el('kpi-count').textContent = data.length.toLocaleString() + '건';
+            if (el('kpi-topClient')) el('kpi-topClient').textContent = top[0];
+            if (el('kpi-special')) el('kpi-special').textContent = special.toLocaleString() + '건';
         }
+
 
         // ─── Trend Chart (이중 막대: 건수 + 금액 독립 스케일) ───
         function renderTrend(data) {
-            const months = Array.from({ length: 12 }, (_, i) => i + 1);
-            const MONTH_KR = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
-            const cnts = months.map(m => data.filter(r => new Date(r.입력일).getMonth() + 1 === m).length);
-            const amts = months.map(m => data.filter(r => new Date(r.입력일).getMonth() + 1 === m).reduce((s, r) => s + (r.추정가격 || 0), 0));
+            // ── 정확히 N개의 월 버킷 생성 ──
+            // 월의 1일 기준으로 잘라야 4개가 되는 문제를 방지
+            const latest = getLatestDate();
+            let buckets = []; // [{ year, month }]
 
+            if (currentFilters.period && !isNaN(parseInt(currentFilters.period))) {
+                const selM = parseInt(currentFilters.period);
+                // latest 달 포함 selM개의 달을 역순으로 생성
+                for (let i = selM - 1; i >= 0; i--) {
+                    const d = new Date(latest.getFullYear(), latest.getMonth() - i, 1);
+                    buckets.push({ year: d.getFullYear(), month: d.getMonth() + 1 });
+                }
+            } else if (currentFilters.dateRange) {
+                // dateRange: getMonthsInRange 그대로 사용
+                buckets = getMonthsInRange(currentFilters.dateRange.start, currentFilters.dateRange.end);
+            } else {
+                // 기본 3개월
+                for (let i = 2; i >= 0; i--) {
+                    const d = new Date(latest.getFullYear(), latest.getMonth() - i, 1);
+                    buckets.push({ year: d.getFullYear(), month: d.getMonth() + 1 });
+                }
+            }
+
+            // startDate / endDate (타이틀용)
+            const firstB = buckets[0];
+            const lastB = buckets[buckets.length - 1];
+            const startDate = `${firstB.year}-${String(firstB.month).padStart(2, '0')}-01`;
+            const lastDay = new Date(lastB.year, lastB.month, 0).getDate();
+            const endDate = `${lastB.year}-${String(lastB.month).padStart(2, '0')}-${lastDay}`;
+
+            // 타이틀
+            const titleEl = document.getElementById('trendTitle');
+            const subEl = document.getElementById('trendSubtitle');
+            if (titleEl) titleEl.textContent = !isNaN(parseInt(currentFilters.period))
+                ? `최근 ${parseInt(currentFilters.period)}개월 공고 추이 분석`
+                : `기간별 공고 추이 분석`;
+            if (subEl) subEl.textContent = `${startDate} ~ ${endDate} 공고 건수 및 금액 변화`;
+
+            // ── 각 버킷의 건수 / 금액 집계 ──
+            const cnts = buckets.map(({ year, month }) =>
+                data.filter(r => {
+                    const d = new Date(r.입력일);
+                    return d.getFullYear() === year && d.getMonth() + 1 === month;
+                }).length
+            );
+            const amts = buckets.map(({ year, month }) =>
+                data.filter(r => {
+                    const d = new Date(r.입력일);
+                    return d.getFullYear() === year && d.getMonth() + 1 === month;
+                }).reduce((s, r) => s + (r.추정가격 || 0), 0)
+            );
+
+            // ── 독립 최대값 (각 시리즈 내 최대 = 100%) ──
             const maxCnt = Math.max(...cnts, 1);
             const maxAmt = Math.max(...amts, 1);
 
-            document.getElementById('trendChart').innerHTML = months.map((m, i) => {
-                const cntH = Math.round(cnts[i] / maxCnt * 100);
-                const amtH = Math.round(amts[i] / maxAmt * 100);
-                const amtLabel = amts[i] >= 1e12 ? (amts[i] / 1e12).toFixed(1) + '조' : amts[i] >= 1e8 ? Math.round(amts[i] / 1e8) + '억' : amts[i] >= 1e6 ? Math.round(amts[i] / 1e6) + '백만' : '-';
-                return `<div class="flex flex-col justify-end items-center h-full w-full gap-1 group relative">
-                    <div class="flex items-end justify-center gap-0.5 w-full" style="height:82%">
-                        <!-- 건수 막대 (파랑) -->
-                        <div class="flex-1 flex flex-col justify-end items-center">
-                            ${cnts[i] > 0 ? `<span class="text-[8px] text-primary font-bold mb-0.5 leading-none">${cnts[i]}</span>` : ''}
-                            <div class="w-full ${cnts[i] > 0 ? 'bg-primary/80' : 'bg-[#283039]'} rounded-t-sm transition-all duration-700 hover:bg-primary cursor-default"
-                                style="height:${cntH}%;min-height:${cnts[i] > 0 ? '4px' : '0'}"
-                                title="${MONTH_KR[i]} 건수: ${cnts[i]}건"></div>
-                        </div>
-                        <!-- 금액 막대 (초록) -->
-                        <div class="flex-1 flex flex-col justify-end items-center">
-                            ${amts[i] > 0 ? `<span class="text-[8px] text-emerald-400 font-bold mb-0.5 leading-none">${amtLabel}</span>` : ''}
-                            <div class="w-full ${amts[i] > 0 ? 'bg-emerald-500/70' : 'bg-[#283039]'} rounded-t-sm transition-all duration-700 hover:bg-emerald-400 cursor-default"
-                                style="height:${amtH}%;min-height:${amts[i] > 0 ? '4px' : '0'}"
-                                title="${MONTH_KR[i]} 금액: ${amtLabel}"></div>
-                        </div>
-                    </div>
-                    <span class="text-[10px] md:text-xs text-[#9dabb9]">${MONTH_KR[i]}</span>
-                </div>`;
+            const MONTH_KR = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+            const thisYear = latest.getFullYear();
+
+            document.getElementById('trendChart').innerHTML = buckets.map(({ year, month }, i) => {
+                // cntH, amtH: 0~95 범위 (최대값은 95%까지 = 꼭대기 약간 아래)
+                const cntH = cnts[i] > 0 ? Math.max(Math.round(cnts[i] / maxCnt * 92), 3) : 0;
+                const amtH = amts[i] > 0 ? Math.max(Math.round(amts[i] / maxAmt * 92), 3) : 0;
+                const amtLabel = amts[i] >= 1e12
+                    ? (amts[i] / 1e12).toFixed(1) + '조'
+                    : amts[i] >= 1e8
+                        ? Math.round(amts[i] / 1e8) + '억'
+                        : amts[i] >= 1e6
+                            ? Math.round(amts[i] / 1e6) + '백만'
+                            : '-';
+                const labelStr = MONTH_KR[month - 1];
+                const yearStr = year !== thisYear ? ("'" + String(year).slice(2) + ' ') : '';
+
+                // 막대 HTML 문자열을 일반 문자열 연결로 생성 (템플릿 리터럴 중첩 방지)
+                var cntLabel = cnts[i] > 0
+                    ? '<div class="absolute left-0 right-0 text-center" style="bottom:calc(' + cntH + '% + 3px);pointer-events:none">'
+                    + '<span class="text-[8px] text-primary font-bold leading-none">' + cnts[i].toLocaleString() + '</span></div>'
+                    : '';
+                var amtLabelHtml = amts[i] > 0
+                    ? '<div class="absolute left-0 right-0 text-center" style="bottom:calc(' + amtH + '% + 3px);pointer-events:none">'
+                    + '<span class="text-[8px] text-emerald-400 font-bold leading-none">' + amtLabel + '</span></div>'
+                    : '';
+
+                return '<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;height:100%">'
+                    + '<div style="width:100%;flex:1;display:flex;gap:3px;align-items:flex-end;position:relative">'
+                    // 건수 막대
+                    + '<div style="flex:1;height:100%;position:relative">'
+                    + '<div class="absolute bottom-0 left-0 right-0 rounded-t-sm bg-primary/80 hover:bg-primary transition-colors cursor-default"'
+                    + ' style="height:' + cntH + '%"'
+                    + ' title="' + yearStr + labelStr + ' 건수: ' + cnts[i].toLocaleString() + '건"></div>'
+                    + cntLabel
+                    + '</div>'
+                    // 금액 막대
+                    + '<div style="flex:1;height:100%;position:relative">'
+                    + '<div class="absolute bottom-0 left-0 right-0 rounded-t-sm bg-emerald-500/70 hover:bg-emerald-400 transition-colors cursor-default"'
+                    + ' style="height:' + amtH + '%"'
+                    + ' title="' + yearStr + labelStr + ' 금액: ' + amtLabel + '"></div>'
+                    + amtLabelHtml
+                    + '</div>'
+                    + '</div>'
+                    // 월 라벨
+                    + '<div class="text-[10px] text-[#9dabb9] whitespace-nowrap mt-1">' + yearStr + labelStr + '</div>'
+                    + '</div>';
             }).join('');
         }
+
+
+
 
         // ─── Heatmap ───
         function renderHeatmap(data) {
@@ -775,19 +1191,19 @@
             };
 
             document.getElementById('heatmapTable').innerHTML = `
-        <thead><tr>
-            <th class="p-3 text-left font-medium text-[#9dabb9] sticky left-0 top-0 bg-surface-dark z-30" style="min-width:80px">지역</th>
-            ${HEATMAP_CATS.map(c => `<th class="p-3 text-center font-medium text-[#9dabb9] sticky top-0 bg-surface-dark z-20 whitespace-nowrap" style="min-width:80px">${c}</th>`).join('')}
-        </tr></thead>
-        <tbody class="text-white">
-        ${HEATMAP_REGIONS.map(r => `
+                    < thead > <tr>
+                        <th class="p-3 text-left font-medium text-[#9dabb9] sticky left-0 top-0 bg-surface-dark z-30" style="min-width:80px">지역</th>
+                        ${HEATMAP_CATS.map(c => `<th class="p-3 text-center font-medium text-[#9dabb9] sticky top-0 bg-surface-dark z-20 whitespace-nowrap" style="min-width:80px">${c}</th>`).join('')}
+                    </tr></thead >
+                        <tbody class="text-white">
+                            ${HEATMAP_REGIONS.map(r => `
             <tr>
                 <td class="p-2 font-bold text-slate-300 whitespace-nowrap sticky left-0 bg-surface-dark z-10" style="min-width:80px">${r}</td>
                 ${HEATMAP_CATS.map(c => `
                     <td class="p-0" style="min-width:80px"><div class="heatmap-cell ${getColor(heatmapMode === 'count' ? matrix[r][c].cnt : matrix[r][c].amt)}">${disp(r, c)}</div></td>
                 `).join('')}
             </tr>`).join('')}
-        </tbody>`;
+                        </tbody>`;
 
             document.getElementById('heatmapNote').textContent = `${data.length}건 데이터 기반 실시간 교차 분석 완료`;
         }
@@ -808,12 +1224,12 @@
             const cMax = topCats[0]?.[1] || 1;
             const gradients = ['from-blue-600 to-primary', 'from-purple-600 to-purple-400', 'from-primary/70 to-primary/50', 'from-primary/50 to-primary/30', 'from-primary/30 to-primary/20'];
             document.getElementById('topCatChart').innerHTML = topCats.map(([k, v], i) => `
-        <div class="space-y-1">
+                    < div class="space-y-1" >
             <div class="flex justify-between text-sm"><span class="text-white font-medium">${k}</span><span class="text-white font-bold">${v}건</span></div>
             <div class="h-3 w-full rounded-full bg-[#283039] overflow-hidden">
                 <div class="h-full rounded-full bg-gradient-to-r ${gradients[i]} transition-all duration-700" style="width:${Math.round(v / cMax * 100)}%"></div>
             </div>
-        </div>`).join('');
+        </div > `).join('');
 
             const clients = {};
             data.forEach(r => { const c = extractClient(r.적격평가세부기준); clients[c] = (clients[c] || 0) + 1; });
@@ -821,12 +1237,12 @@
             const rMax = topClients[0]?.[1] || 1;
             const pGradients = ['from-purple-600 to-purple-400', 'from-purple-500 to-purple-300', 'from-purple-400/80 to-purple-200/80', 'from-purple-400/60 to-purple-200/60', 'from-purple-400/40 to-purple-200/40'];
             document.getElementById('topClientChart').innerHTML = topClients.map(([k, v], i) => `
-        <div class="space-y-1">
+                    < div class="space-y-1" >
             <div class="flex justify-between text-sm"><span class="text-white font-medium">${k}</span><span class="text-white font-bold">${v}건</span></div>
             <div class="h-3 w-full rounded-full bg-[#283039] overflow-hidden">
                 <div class="h-full rounded-full bg-gradient-to-r ${pGradients[i]} transition-all duration-700" style="width:${Math.round(v / rMax * 100)}%"></div>
             </div>
-        </div>`).join('');
+        </div > `).join('');
         }
 
         // ─── Filter Modal ───
@@ -849,7 +1265,7 @@
 
         function switchTab(tab) {
             currentTab = tab;
-            ['지역', '종목', '발주처', '특수실적', '금액범위'].forEach(t => {
+            ['지역', '종목', '발주처', '특수실적', '금액범위', '기간'].forEach(t => {
                 const btn = document.getElementById('tab-' + t);
                 if (!btn) return;
                 btn.className = t === tab
@@ -861,21 +1277,173 @@
 
             const isRegion = tab === '지역';
             const isCat = tab === '종목';
-            const isGeneral = !isRegion && !isCat;
+            const isPeriod = tab === '기간';
+            const isAmt = tab === '금액범위';
+            const isClient = tab === '발주처';
+            const isGeneral = !isRegion && !isCat && !isPeriod && !isAmt && !isClient;
 
             document.getElementById('regionPanel').style.display = isRegion ? 'flex' : 'none';
             document.getElementById('categoryPanel').style.display = isCat ? 'flex' : 'none';
             document.getElementById('generalPanel').style.display = isGeneral ? 'block' : 'none';
+            document.getElementById('periodPanel').style.display = isPeriod ? 'block' : 'none';
+            document.getElementById('amtPanel').style.display = isAmt ? 'block' : 'none';
+            document.getElementById('clientPanel').style.display = isClient ? 'flex' : 'none';
+
+            // 검색창 - 기간/금액/발주처 탭에서는 숨기기
+            const hideSearch = isPeriod || isAmt || isClient;
+            const srPanel = document.getElementById('searchResultsPanel');
+            if (srPanel) srPanel.style.display = 'none';
 
             if (isGeneral) {
-                document.getElementById('filterTabTitle').textContent = TAB_OPTS[tab].label;
+                document.getElementById('filterTabTitle').textContent = TAB_OPTS[tab] ? TAB_OPTS[tab].label : '';
             }
+            if (isPeriod) { renderPeriodPanel(); return; }
+            if (isAmt) { renderAmtPanel(); return; }
+            if (isClient) { renderClientPanel(); return; }
             renderFilterChips();
         }
 
+        // ─── 발주처 목록 (19개, 2컬럼 그리드) ───
+        const CLIENT_LIST = [
+            '조달청', '행정안전부', '국방조달본부',
+            '한국전력공사', '한국토지주택공사', '한국도로공사',
+            '한국수자원공사', '국가철도공단', '한국농어촌공사',
+            '에스에이치공사', '인천국제공항', '한국가스공사',
+            '한국공항공사', '한국마사회', '한국석유공사',
+            '한국수력원자력', '한국지역난방공사', '한국철도공사',
+            '한국환경공단'
+        ];
+
+        function renderClientPanel() {
+            const sel = tempFilters.clients || [];
+            const html = `< div class="grid grid-cols-2 gap-0 p-2" > ` +
+                CLIENT_LIST.map(name => {
+                    const isChecked = sel.includes(name);
+                    const ne = name.replace(/'/g, "\\'");
+                    return `< div onclick = "toggleClientItem('${ne}')" class="flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all hover:bg-[#283039] ${isChecked ? 'bg-primary/5' : ''}" >
+                    <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation();toggleClientItem('${ne}')" class="w-3.5 h-3.5 accent-primary cursor-pointer flex-shrink-0">
+                        <span class="text-sm ${isChecked ? 'text-primary font-medium' : 'text-[#9dabb9]'} truncate">${name}</span>
+                    </div>`;
+                }).join('') +
+                `</div > `;
+            document.getElementById('clientList').innerHTML = html;
+            updateSelectedTags();
+        }
+        function toggleClientItem(name) {
+            if (!tempFilters.clients) tempFilters.clients = [];
+            const idx = tempFilters.clients.indexOf(name);
+            if (idx >= 0) tempFilters.clients.splice(idx, 1);
+            else tempFilters.clients.push(name);
+            renderClientPanel();
+        }
+        function selectAllClients() { tempFilters.clients = [...CLIENT_LIST]; renderClientPanel(); }
+        function clearAllClients() { tempFilters.clients = []; renderClientPanel(); }
+
+
+        // ─── 금액범위 탭 함수들 ───
+        function renderAmtPanel() {
+            const sel = tempFilters.amtFilter;
+            document.querySelectorAll('.amt-quick-btn').forEach(btn => {
+                const isActive = sel && sel.label === btn.textContent.trim().replace(/\s+/g, ' ');
+                if (isActive) {
+                    btn.classList.add('border-amber-500', 'text-amber-400', 'bg-amber-500/10');
+                } else {
+                    btn.classList.remove('border-amber-500', 'text-amber-400', 'bg-amber-500/10');
+                }
+            });
+            const box = document.getElementById('amtSummaryBox');
+            const txt = document.getElementById('amtSummaryText');
+            if (sel && sel.label) {
+                box.classList.remove('hidden');
+                txt.textContent = sel.label;
+            } else {
+                box.classList.add('hidden');
+            }
+            updateSelectedTags();
+        }
+        function setQuickAmt(min, max, label) {
+            tempFilters.amtFilter = { min, max, label };
+            renderAmtPanel();
+        }
+        function applyCustomAmt() {
+            const min = document.getElementById('amtMin').value;
+            const max = document.getElementById('amtMax').value;
+            if (!min && !max) { clearAmt(); return; }
+            const minN = min ? parseFloat(min) : null;
+            const maxN = max ? parseFloat(max) : null;
+            const label = (minN != null ? minN + '억' : '0') + ' ~ ' + (maxN != null ? maxN + '억' : '제한없음');
+            tempFilters.amtFilter = { min: minN, max: maxN, label };
+            renderAmtPanel();
+        }
+        function clearAmt() {
+            tempFilters.amtFilter = null;
+            document.getElementById('amtMin').value = '';
+            document.getElementById('amtMax').value = '';
+            renderAmtPanel();
+        }
+
+        // ─── 기간 탭 함수들 ───
+        function toDateStr(d) {
+            return d.toISOString().slice(0, 10);
+        }
+        function renderPeriodPanel() {
+            const sel = tempFilters.dateRange;
+            const box = document.getElementById('periodSummaryBox');
+            const txt = document.getElementById('periodSummaryText');
+            // 빠른선택 버튼 active 상태
+            document.querySelectorAll('.period-quick-btn').forEach(btn => {
+                const m = parseInt(btn.dataset.m);
+                const isActive = sel && sel.quickMonths === m;
+                btn.className = btn.className.replace(/ border-primary text-primary bg-primary\/10/g, '');
+                if (isActive) {
+                    btn.className += ' border-primary text-primary bg-primary/10';
+                }
+            });
+            if (sel && sel.start && sel.end) {
+                box.classList.remove('hidden');
+                txt.textContent = sel.start + ' ~ ' + sel.end;
+                document.getElementById('periodStart').value = sel.start;
+                document.getElementById('periodEnd').value = sel.end;
+            } else {
+                box.classList.add('hidden');
+            }
+            updateSelectedTags();
+        }
+        function setQuickPeriod(months) {
+            if (months === 0) { clearPeriod(); return; }
+            // DB 최신 날짜 기준으로 계산
+            const anchor = getLatestDate();
+            const start = new Date(anchor);
+            start.setMonth(start.getMonth() - months);
+            start.setDate(start.getDate() + 1);
+            tempFilters.dateRange = { start: toDateStr(start), end: toDateStr(anchor), quickMonths: months };
+            renderPeriodPanel();
+        }
+        function onCustomPeriodChange() {
+            // 날짜 입력 바뀌면 quickMonths 초기화
+            if (tempFilters.dateRange) tempFilters.dateRange.quickMonths = null;
+            document.querySelectorAll('.period-quick-btn').forEach(btn => {
+                btn.className = btn.className.replace(/ border-primary text-primary bg-primary\/10/g, '');
+            });
+        }
+        function applyCustomPeriod() {
+            const s = document.getElementById('periodStart').value;
+            const e = document.getElementById('periodEnd').value;
+            if (!s || !e) { alert('시작일과 종료일을 모두 입력하세요.'); return; }
+            if (s > e) { alert('시작일이 종료일보다 늦을 수 없습니다.'); return; }
+            tempFilters.dateRange = { start: s, end: e, quickMonths: null };
+            renderPeriodPanel();
+        }
+        function clearPeriod() {
+            tempFilters.dateRange = null;
+            document.getElementById('periodStart').value = '';
+            document.getElementById('periodEnd').value = '';
+            renderPeriodPanel();
+        }
+
         function renderFilterChips() {
-            if (currentTab === '지역') { renderRegionPanel(); return; }
-            if (currentTab === '종목') { renderCategoryPanel(); return; }
+            if (currentTab === '지역') { renderRegionPanel(); renderSearchResults(); return; }
+            if (currentTab === '종목') { renderCategoryPanel(); renderSearchResults(); return; }
             const cfg = TAB_OPTS[currentTab];
             const key = cfg.key;
             const q = document.getElementById('filterSearch').value.toLowerCase();
@@ -883,12 +1451,99 @@
             const sel = currentTab === '특수실적' ? (tempFilters.specialOnly ? ['특수실적 있음'] : []) : (tempFilters[key] || []);
             document.getElementById('filterChipGrid').innerHTML = items.map(item => {
                 const active = sel.includes(item);
-                return `<div onclick="toggleChip('${item}')" class="filter-chip${active ? ' active' : ''}">
-            <span>${item}</span>
+                return `< div onclick = "toggleChip('${item}')" class="filter-chip${active ? ' active' : ''}" >
+                    <span>${item}</span>
             ${active ? '<span class="material-symbols-outlined text-[16px]">check_circle</span>' : ''}
-        </div>`;
+        </div > `;
             }).join('');
+            renderSearchResults();
             updateSelectedCount();
+        }
+
+        // ─── 검색 결과 패널 (검색창 위 breadcrumb 방식) ───
+        function renderSearchResults() {
+            const q = document.getElementById('filterSearch').value.toLowerCase().trim();
+            const panel = document.getElementById('searchResultsPanel');
+            if (!q) { panel.style.display = 'none'; panel.style.maxHeight = ''; return; }
+
+            let results = [];
+
+            if (currentTab === '종목') {
+                Object.entries(CATEGORY_TREE).forEach(([l1, l2s]) => {
+                    Object.entries(l2s).forEach(([l2, l3s]) => {
+                        if (l2.toLowerCase().includes(q)) {
+                            results.push({ label: l2, breadcrumb: l1 + ' › 업종', key: l2, type: 'cat', accent: 'primary' });
+                        }
+                        (l3s || []).forEach(l3 => {
+                            if (l3.toLowerCase().includes(q)) {
+                                results.push({ label: l3, breadcrumb: l1 + ' › ' + l2 + ' › 주력분야', key: l3, type: 'cat', accent: 'emerald' });
+                            }
+                        });
+                    });
+                });
+            } else if (currentTab === '지역') {
+                Object.entries(REGION_SUBS).forEach(([region, subs]) => {
+                    if (region.toLowerCase().includes(q)) {
+                        results.push({ label: region, breadcrumb: '전체 지역', key: region, type: 'region' });
+                    }
+                    subs.forEach(sub => {
+                        if (sub.toLowerCase().includes(q)) {
+                            results.push({ label: sub, breadcrumb: region, key: region + ' ' + sub, type: 'region' });
+                        }
+                    });
+                });
+            } else {
+                const cfg = TAB_OPTS[currentTab];
+                if (cfg && cfg.items) {
+                    cfg.items.filter(i => i.toLowerCase().includes(q)).forEach(item => {
+                        results.push({ label: item, breadcrumb: cfg.label, key: item, type: 'general' });
+                    });
+                }
+            }
+
+            panel.style.display = 'block';
+            panel.style.maxHeight = '200px';
+
+            if (!results.length) {
+                panel.innerHTML = `< div class="flex items-center justify-center gap-2 py-4 text-[#5e6c7c] text-xs" >
+                    <span class="material-symbols-outlined text-[20px]">search_off</span>'<span class="text-primary">${q}</span>' 결과 없음</div > `;
+                return;
+            }
+
+            panel.innerHTML = results.map((r, i) => {
+                const sel = currentTab === '종목' ? (tempFilters.categories || []) : (tempFilters.regions || []);
+                const isChecked = sel.includes(r.key);
+                const fn = r.type === 'cat' ? `toggleSearchResultCat('${r.key.replace(/'/g, "\\'")}')`
+                    : r.type === 'region' ? `toggleSearchResultReg('${r.key.replace(/'/g, "\\'")}')`
+                        : `toggleChip('${r.key.replace(/'/g, "\\'")}')`;
+                const accentColor = r.accent === 'emerald' ? 'text-emerald-400' : 'text-primary';
+                return `<div onclick="${fn}" class="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-[#1e2a38] transition-all border-b border-[#3b4754]/20">
+                    <span class="text-[11px] text-[#5e6c7c] font-mono flex-shrink-0 min-w-[14px]">${i + 1}.</span>
+                    <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation();${fn}" class="w-3.5 h-3.5 accent-primary cursor-pointer flex-shrink-0">
+                    <div class="flex flex-col flex-1 min-w-0">
+                        <span class="text-[10px] text-[#5e6c7c] truncate">${r.breadcrumb}</span>
+                        <span class="text-sm truncate ${isChecked ? accentColor + ' font-medium' : 'text-white'}">${r.label}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleSearchResultCat(key) {
+            if (!tempFilters.categories) tempFilters.categories = [];
+            const idx = tempFilters.categories.indexOf(key);
+            if (idx >= 0) tempFilters.categories.splice(idx, 1);
+            else tempFilters.categories.push(key);
+            renderSearchResults();
+            updateSelectedTags();
+        }
+
+        function toggleSearchResultReg(key) {
+            if (!tempFilters.regions) tempFilters.regions = [];
+            const idx = tempFilters.regions.indexOf(key);
+            if (idx >= 0) tempFilters.regions.splice(idx, 1);
+            else tempFilters.regions.push(key);
+            renderSearchResults();
+            updateSelectedTags();
         }
 
         // ─── 종목 3단 드릴다운 ───
@@ -910,52 +1565,8 @@
                 </div>`;
             }).join('');
 
-            // ── 검색 모드 ──
-            if (q) {
-                // 전체 트리에서 업종/주력분야 검색
-                const results = [];
-                Object.keys(CATEGORY_TREE).forEach(l1 => {
-                    Object.keys(CATEGORY_TREE[l1]).forEach(l2 => {
-                        const l2Match = l2.toLowerCase().includes(q);
-                        const l3Items = CATEGORY_TREE[l1][l2] || [];
-                        const l3Matches = l3Items.filter(l3 => l3.toLowerCase().includes(q));
-                        if (l2Match) results.push({ type: 'l2', l1, l2 });
-                        l3Matches.forEach(l3 => results.push({ type: 'l3', l1, l2, l3 }));
-                    });
-                });
-
-                document.getElementById('catL2List').innerHTML = results.length
-                    ? results.map(r => {
-                        if (r.type === 'l2') {
-                            const isChecked = sel.includes(r.l2);
-                            return `<div onclick="searchToggleL2('${r.l1}','${r.l2}')" class="flex items-center px-3 py-2.5 cursor-pointer gap-2 transition-all hover:bg-[#283039]">
-                                <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation();searchToggleL2('${r.l1}','${r.l2}')" class="w-3.5 h-3.5 accent-primary cursor-pointer flex-shrink-0">
-                                <div class="flex flex-col flex-1 min-w-0">
-                                    <span class="text-[10px] text-[#5e6c7c]">${r.l1} › 업종</span>
-                                    <span class="text-sm ${isChecked ? 'text-primary font-medium' : 'text-[#9dabb9]'}">${r.l2}</span>
-                                </div>
-                            </div>`;
-                        } else {
-                            const isChecked = sel.includes(r.l3);
-                            return `<div onclick="toggleCatL3('${r.l3}')" class="flex items-center px-3 py-2.5 cursor-pointer gap-2 transition-all hover:bg-[#283039]">
-                                <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation();toggleCatL3('${r.l3}')" class="w-3.5 h-3.5 accent-emerald-500 cursor-pointer flex-shrink-0">
-                                <div class="flex flex-col flex-1 min-w-0">
-                                    <span class="text-[10px] text-[#5e6c7c]">${r.l1} › ${r.l2}</span>
-                                    <span class="text-sm ${isChecked ? 'text-emerald-400 font-medium' : 'text-[#9dabb9]'}">${r.l3}</span>
-                                </div>
-                            </div>`;
-                        }
-                    }).join('')
-                    : `<div class="flex flex-col h-full items-center justify-center text-[#9dabb9] text-xs gap-2 p-6">
-                        <span class="material-symbols-outlined text-[28px]">search_off</span>
-                        '<span class="text-primary">${q}</span>' 검색 결과 없음</div>`;
-
-                document.getElementById('catL3List').innerHTML = `<div class="flex flex-col h-full items-center justify-center text-[#9dabb9] text-xs gap-2 p-4">
-                    <span class="material-symbols-outlined text-[28px]">manage_search</span>검색 결과에서 선택하세요</div>`;
-                updateSelectedCount();
-                return;
-            }
-
+            // ── 검색 시 searchResultsPanel에서 결과 표시 (이 영역은 쬬 창에서 제거) ──
+            // 'q' 없을 때만 L2/L3 일반 모드 런더
             // ── 일반 모드: L2 업종 ──
             if (selectedCatL1) {
                 const l2Keys = Object.keys(CATEGORY_TREE[selectedCatL1]);
@@ -1076,53 +1687,77 @@
             renderCategoryPanel();
         }
 
-        // ─── 지역 드릴다운 ───
+        // ─── 지역 2단 드릴다운 (종목과 동일 방식) ───
         function renderRegionPanel() {
             const q = document.getElementById('filterSearch').value.toLowerCase();
-            const items = TAB_OPTS['지역'].items.filter(i => i.toLowerCase().includes(q));
+            const allRegions = TAB_OPTS['지역'].items;
             const sel = tempFilters.regions || [];
-            document.getElementById('regionChipGrid').innerHTML = items.map(region => {
+
+            // ── L1: 도·특별시 목록 ──
+            const l1Items = allRegions.filter(r => r.toLowerCase().includes(q));
+            document.getElementById('regionL1List').innerHTML = l1Items.map(region => {
                 const hasSub = REGION_SUBS[region] && REGION_SUBS[region].length > 0;
-                const isParent = selectedParentRegion === region;
-                const subSel = hasSub ? REGION_SUBS[region].filter(s => sel.includes(s)).length : 0;
-                const active = sel.includes(region);
-                return `<div onclick="handleRegionClick('${region}')" class="filter-chip${active ? ' active' : ''}${isParent ? ' ring-2 ring-emerald-500/70' : ''}" style="gap:4px;font-size:13px;">
-                    <span>${region}</span>
-                    ${hasSub ? `<span style="font-size:9px;color:${isParent ? '#10b981' : '#9dabb9'};">▼</span>` : ''}
-                    ${subSel > 0 ? `<span style="font-size:9px;background:#10b981;color:white;border-radius:10px;padding:0 5px;margin-left:2px;">${subSel}</span>` : ''}
-                    ${active ? '<span class="material-symbols-outlined" style="font-size:14px;">check_circle</span>' : ''}
+                const isActive = selectedParentRegion === region;
+                const subSel = hasSub ? REGION_SUBS[region].filter(s => sel.includes(region + ' ' + s)).length : 0;
+                const isChecked = sel.includes(region);
+                return `<div onclick="handleRegionClick('${region}')" class="flex items-center px-3 py-3 cursor-pointer gap-2 transition-all
+                    ${isActive ? 'bg-primary/10 border-r-2 border-primary' : 'hover:bg-[#283039]'}">
+                    <input type="checkbox" ${isChecked ? 'checked' : ''}
+                        onclick="event.stopPropagation();handleRegionClick('${region}')"
+                        class="w-3.5 h-3.5 accent-primary cursor-pointer flex-shrink-0">
+                    <span class="text-sm flex-1 ${isChecked ? 'text-primary font-medium' : (isActive ? 'text-primary font-bold' : 'text-[#9dabb9]')}">${region}</span>
+                    ${subSel > 0 ? `<span style="font-size:10px;background:#3b82f6;color:white;border-radius:10px;padding:0 6px;">${subSel}</span>` : ''}
+                    ${hasSub ? `<span class="material-symbols-outlined text-[13px] ${isActive ? 'text-primary' : 'text-[#5e6c7c]'}">chevron_right</span>` : ''}
                 </div>`;
             }).join('');
 
-            if (selectedParentRegion && REGION_SUBS[selectedParentRegion] && REGION_SUBS[selectedParentRegion].length) {
-                const subPanel = document.getElementById('subRegionPanel');
-                subPanel.style.display = 'flex';
-                document.getElementById('subRegionTitle').textContent = selectedParentRegion + ' 세부 지역';
+            // ── L2: 시군구 목록 ──
+            if (selectedParentRegion && REGION_SUBS[selectedParentRegion]) {
+                document.getElementById('regionL2Title').textContent = '2. ' + selectedParentRegion + ' 시·군·구';
                 const subItems = REGION_SUBS[selectedParentRegion];
-                document.getElementById('subRegionChipGrid').innerHTML = subItems.map(sub => {
-                    const key = selectedParentRegion + ' ' + sub;
-                    const active = sel.includes(key);
-                    return `<div onclick="toggleSubRegion('${selectedParentRegion}', '${sub}')" class="filter-chip${active ? ' active' : ''}" style="font-size:12px;padding:6px 10px;">
-                        <span>${sub}</span>
-                        ${active ? '<span class="material-symbols-outlined" style="font-size:13px;">check_circle</span>' : ''}
-                    </div>`;
-                }).join('');
+                if (subItems.length === 0) {
+                    // 세종 등 하위 없는 경우
+                    document.getElementById('regionL2List').innerHTML = `<div class="flex flex-col h-full items-center justify-center text-[#9dabb9] text-xs gap-2 p-4">
+                        <span class="material-symbols-outlined text-[28px]">inbox</span>하위 지역 없음</div>`;
+                } else {
+                    document.getElementById('regionL2List').innerHTML = subItems.map(sub => {
+                        const key = selectedParentRegion + ' ' + sub;
+                        const active = sel.includes(key);
+                        return `<div onclick="toggleSubRegion('${selectedParentRegion}', '${sub}')" class="flex items-center px-3 py-2.5 cursor-pointer gap-2 transition-all hover:bg-[#283039]">
+                            <input type="checkbox" ${active ? 'checked' : ''} onclick="event.stopPropagation();toggleSubRegion('${selectedParentRegion}','${sub}')" class="w-3.5 h-3.5 accent-primary cursor-pointer flex-shrink-0">
+                            <span class="text-sm ${active ? 'text-primary font-medium' : 'text-[#9dabb9]'}">${sub}</span>
+                        </div>`;
+                    }).join('');
+                }
             } else {
-                document.getElementById('subRegionPanel').style.display = 'none';
+                document.getElementById('regionL2Title').textContent = '2. 시·군·구';
+                document.getElementById('regionL2List').innerHTML = `<div class="flex flex-col h-full items-center justify-center text-[#9dabb9] text-xs gap-2 p-4">
+                    <span class="material-symbols-outlined text-[28px]">arrow_back</span>도·특별시를 선택하세요</div>`;
             }
             updateSelectedCount();
         }
 
         function handleRegionClick(region) {
             const hasSub = REGION_SUBS[region] && REGION_SUBS[region].length > 0;
+            // 항상 선택 토글 (종목의 handleCatL2와 동일)
+            if (!tempFilters.regions) tempFilters.regions = [];
+            const idx = tempFilters.regions.indexOf(region);
+            const nowChecked = idx < 0;
+            if (idx >= 0) tempFilters.regions.splice(idx, 1);
+            else tempFilters.regions.push(region);
+            // 하위 있는 지역: 체크 시 패널 열기, 해제 시 닫기
             if (hasSub) {
-                selectedParentRegion = selectedParentRegion === region ? null : region;
-            } else {
-                if (!tempFilters.regions) tempFilters.regions = [];
-                const idx = tempFilters.regions.indexOf(region);
-                if (idx >= 0) tempFilters.regions.splice(idx, 1);
-                else tempFilters.regions.push(region);
+                selectedParentRegion = nowChecked ? region : (selectedParentRegion === region ? null : selectedParentRegion);
             }
+            renderRegionPanel();
+        }
+
+        function toggleRegionL1(region) {
+            // 도·특별시 자체를 직접 선택/해제
+            if (!tempFilters.regions) tempFilters.regions = [];
+            const idx = tempFilters.regions.indexOf(region);
+            if (idx >= 0) tempFilters.regions.splice(idx, 1);
+            else tempFilters.regions.push(region);
             renderRegionPanel();
         }
 
@@ -1188,65 +1823,117 @@
         function updateSelectedCount() { updateSelectedTags(); }  // 호환성 유지
 
         function updateSelectedTags() {
-            const allSelected = [
-                ...(tempFilters.regions || []),
-                ...(tempFilters.categories || []),
-                ...(tempFilters.clients || []),
-                ...(tempFilters.amtRange || []),
-                ...(tempFilters.specialOnly ? ['특수실적 있음'] : []),
+            const drItems = tempFilters.dateRange
+                ? [tempFilters.dateRange.start + ' ~ ' + tempFilters.dateRange.end] : [];
+            const amtItems = tempFilters.amtFilter && tempFilters.amtFilter.label
+                ? [tempFilters.amtFilter.label] : [];
+            const groups = [
+                { label: '기간', color: 'text-rose-400 border-rose-500/40 bg-rose-500/10', items: drItems },
+                { label: '지역', color: 'text-sky-400 border-sky-500/40 bg-sky-500/10', items: tempFilters.regions || [] },
+                { label: '종목', color: 'text-primary border-primary/30 bg-primary/10', items: tempFilters.categories || [] },
+                { label: '발주처', color: 'text-violet-400 border-violet-500/40 bg-violet-500/10', items: tempFilters.clients || [] },
+                { label: '금액', color: 'text-amber-400 border-amber-500/40 bg-amber-500/10', items: amtItems },
+                { label: '특수실적', color: 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10', items: tempFilters.specialOnly ? ['특수실적 있음'] : [] },
             ];
+            const hasAny = groups.some(g => g.items.length > 0);
             const row = document.getElementById('selectedTagsRow');
             const empty = document.getElementById('selectedTagsEmpty');
-            // 기존 태그 제거 (empty 스팬만 남김)
+            // 기존 태그 그룹 제거 (empty 스팬만 남김)
             Array.from(row.children).forEach(child => {
                 if (child.id !== 'selectedTagsEmpty') child.remove();
             });
-            if (!allSelected.length) {
+            if (!hasAny) {
                 empty.style.display = '';
                 return;
             }
             empty.style.display = 'none';
-            allSelected.forEach(item => {
-                const span = document.createElement('span');
-                span.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary/15 text-primary border border-primary/30 cursor-default';
-                const safeItem = item.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                span.innerHTML = item + '<span onclick="removeSelectedTag(\'' + safeItem + '\')" class="material-symbols-outlined text-[12px] hover:text-white cursor-pointer">close</span>';
-                row.appendChild(span);
+            groups.forEach(group => {
+                if (!group.items.length) return;
+                // 그룹행: 라벨 + 태그들
+                const groupRow = document.createElement('div');
+                groupRow.className = 'flex flex-wrap items-center gap-1.5';
+                // 라벨
+                const lbl = document.createElement('span');
+                lbl.className = 'text-[10px] font-bold text-[#5e6c7c] mr-0.5 whitespace-nowrap';
+                lbl.textContent = group.label + ':';
+                groupRow.appendChild(lbl);
+                // 태그들
+                group.items.forEach(item => {
+                    const span = document.createElement('span');
+                    span.className = `inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border cursor-default ${group.color}`;
+                    const safeItem = item.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                    span.innerHTML = item + '<span onclick="removeSelectedTag(\'' + safeItem + '\')" class="material-symbols-outlined text-[12px] hover:text-white cursor-pointer">close</span>';
+                    groupRow.appendChild(span);
+                });
+                row.appendChild(groupRow);
             });
         }
 
         function removeSelectedTag(item) {
             // 어떤 키에 속하는지 스캔하여 제거
-            ['regions', 'categories', 'clients', 'amtRange'].forEach(key => {
+            ['regions', 'categories', 'clients'].forEach(key => {
                 if (tempFilters[key]) {
                     tempFilters[key] = tempFilters[key].filter(v => v !== item);
                 }
             });
             if (item === '특수실적 있음') tempFilters.specialOnly = false;
+            // 금액 태그 제거
+            if (tempFilters.amtFilter && tempFilters.amtFilter.label === item) {
+                tempFilters.amtFilter = null;
+            }
+            // 기간 태그 제거
+            if (tempFilters.dateRange) {
+                const drLabel = tempFilters.dateRange.start + ' ~ ' + tempFilters.dateRange.end;
+                if (drLabel === item) tempFilters.dateRange = null;
+            }
             renderFilterChips();
+            updateSelectedTags();
         }
 
         function applyFilters() {
             currentFilters = JSON.parse(JSON.stringify(tempFilters));
+            // amtFilter { min, max, label } → filterData()가 읽는 flat 필드로 변환
+            if (currentFilters.amtFilter) {
+                // 억 단위(1e8) 기준으로 저장돼 있음
+                currentFilters.minAmt = currentFilters.amtFilter.min != null ? currentFilters.amtFilter.min * 1e8 : null;
+                currentFilters.maxAmt = currentFilters.amtFilter.max != null ? currentFilters.amtFilter.max * 1e8 : null;
+            } else {
+                currentFilters.minAmt = null;
+                currentFilters.maxAmt = null;
+            }
+            // 상세설정에서 기간(dateRange)이 지정됐으면 드롭다운 period는 초기화
+            if (currentFilters.dateRange) {
+                currentFilters.period = null;
+                document.getElementById('periodSelect').value = '12';
+            }
             closeFilterModal();
             render();
             updateFilterLabels();
         }
 
         function resetFilters() {
-            tempFilters = { regions: [], categories: [], clients: [], specialOnly: false };
+            tempFilters = { regions: [], categories: [], clients: [], specialOnly: false, amtFilter: null, dateRange: null };
             selectedParentRegion = null;
+            selectedCatL1 = null;
+            selectedCatL2 = null;
+            // 금액/기간 입력 필드도 초기화
+            const amtMin = document.getElementById('amtMin'); if (amtMin) amtMin.value = '';
+            const amtMax = document.getElementById('amtMax'); if (amtMax) amtMax.value = '';
+            const pStart = document.getElementById('periodStart'); if (pStart) pStart.value = '';
+            const pEnd = document.getElementById('periodEnd'); if (pEnd) pEnd.value = '';
             renderFilterChips();
+            updateSelectedTags();
         }
 
         function updateFilterLabels() {
             const r = currentFilters.regions;
             const c = currentFilters.categories;
             const cl = currentFilters.clients;
-            document.getElementById('filterRegionLabel').textContent = r && r.length ? r.slice(0, 2).join(', ') + (r.length > 2 ? ` 외 ${r.length - 2}개` : '') : '전국 (전체)';
-            document.getElementById('filterCatLabel').textContent = c && c.length ? c.slice(0, 2).join(', ') + (c.length > 2 ? ` 외 ${c.length - 2}개` : '') : '전체';
-            document.getElementById('filterClientLabel').textContent = cl && cl.length ? cl.slice(0, 2).join(', ') + (cl.length > 2 ? ` 외 ${cl.length - 2}개` : '') : '전체';
-            document.getElementById('filterSpecialLabel').textContent = currentFilters.specialOnly ? '특수실적만' : '전체 실적';
+            const setEl = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+            setEl('filterRegionLabel', r && r.length ? r.slice(0, 2).join(', ') + (r.length > 2 ? ` 외 ${r.length - 2}개` : '') : '전국 (전체)');
+            setEl('filterCatLabel', c && c.length ? c.slice(0, 2).join(', ') + (c.length > 2 ? ` 외 ${c.length - 2}개` : '') : '전체');
+            setEl('filterClientLabel', cl && cl.length ? cl.slice(0, 2).join(', ') + (cl.length > 2 ? ` 외 ${cl.length - 2}개` : '') : '전체');
+            setEl('filterSpecialLabel', currentFilters.specialOnly ? '특수실적만' : '전체 실적');
         }
 
         function clearFilter(key, e) {
