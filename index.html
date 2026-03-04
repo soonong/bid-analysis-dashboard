@@ -10,6 +10,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
         rel="stylesheet" />
+    <script src="data.js"></script>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script>
         tailwind.config = {
@@ -839,40 +840,36 @@
                 const ts = now.toLocaleDateString('ko-KR') + ' ' + now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
                 document.getElementById('updateTime').textContent = `갱신: ${ts} (${RAW_DATA.length.toLocaleString()}건)`;
 
+                hideLoading();
                 return true;
             } catch (err) {
-                console.warn('API 오류 (로컬 데이터 사용):', err.message);
-                document.getElementById('loadingStatus').textContent = '로컬 data.json 로딩 중...';
+                console.warn('API 오류 (로컬 data.js 데이터 유지):', err.message);
+                hideLoading();
                 return false;
             }
         }
 
-        async function loadLocalJSON() {
-            // data.json fetch (API 실패 시 폴백)
-            try {
-                document.getElementById('loadingStatus').textContent = 'data.json 로딩 중...';
-                const resp = await fetch('data.json?v=' + Date.now());
-                if (!resp.ok) throw new Error('data.json 없음');
-                const rawArr = await resp.json();
-                RAW_DATA = rawArr.map(processRow);
-                TAB_OPTS['종목'].items = [...new Set(RAW_DATA.map(r => (r.종목 || '').split(/[\/,(]/)[0].trim()).filter(Boolean))].sort();
+        function loadDataJS() {
+            // data.js가 <script src="data.js">로 이미 로드된 경우 처리
+            if (window.RAW_DATA && Array.isArray(window.RAW_DATA) && window.RAW_DATA.length > 0) {
+                // data.js에서 이미 processRow 없이 플랫 객체가 들어오면 그대로 사용
+                // (data.js의 RAW_DATA는 이미 최종 형식)
+                TAB_OPTS['종목'].items = [...new Set(RAW_DATA.map(r => (r.종목 || '').split(/[\/(,]/)[0].trim()).filter(Boolean))].sort();
                 TAB_OPTS['발주처'].items = [...new Set(RAW_DATA.map(r => extractClient(r.적격평가세부기준)))].sort();
                 document.getElementById('updateTime').textContent = `로컬 데이터: ${RAW_DATA.length.toLocaleString()}건`;
                 return true;
-            } catch (e2) {
-                console.error('data.json 로드 실패:', e2);
-                document.getElementById('updateTime').textContent = '데이터 없음 - 새로고침 필요';
-                return false;
-            } finally {
-                hideLoading();
             }
+            return false;
         }
 
         async function refreshData() {
             const m = parseInt(currentFilters.period) || 3;
+            showLoading(`최근 ${m}개월 데이터 수집 중`, 'API에서 최신 데이터 가져오는 중...');
             const ok = await fetchAPIData(m);
-            if (!ok) await loadLocalJSON();
-            hideLoading();
+            if (!ok) {
+                // API 실패 시 data.js 데이터 유지 (이미 로드됨)
+                hideLoading();
+            }
             render();
         }
 
@@ -890,22 +887,22 @@
             const selEl = document.getElementById('periodSelect');
             if (selEl) selEl.value = currentFilters.period;
 
-            // ① 1순위: 로컬 data.json (바로 렌더)
-            showLoading('데이터 로딩 중', 'data.json 로딩 중...');
-            const localOk = await loadLocalJSON();
+            // ① 1순위: data.js (이미 <script>로 로드됨) → 즉시 렌더
+            const localOk = loadDataJS();
             if (localOk) {
-                render(); // 즉시 렌더
-                // ② 백그라운드에서 API 최신화 시도 (실패해도 무관)
+                hideLoading(); // 로딩 오버레이 즉시 숨기기
+                render();      // 즉시 렌더
+                // ② 백그라운드에서 API 최신화 시도 (실패해도 기존 data.js 유지)
                 fetchAPIData(currentFilters.period).then(apiOk => {
-                    if (apiOk) { hideLoading(); render(); }
-                }).catch(() => { });
+                    if (apiOk) render();
+                }).catch(() => { hideLoading(); });
             } else {
-                // 로컬 JSON도 없으면 API 시도
+                // data.js 로드 실패 시 API 직접 시도
                 showLoading('API에서 데이터 수집 중', '잠시 기다려주세요...');
                 const apiOk = await fetchAPIData(currentFilters.period);
-                hideLoading();
                 if (apiOk) render();
                 else {
+                    hideLoading();
                     document.getElementById('updateTime').textContent = '⚠️ 데이터 없음 - python fetch_api_data.py 실행 필요';
                 }
             }
@@ -917,16 +914,18 @@
         async function setPeriodFromSelect(val) {
             if (val === 'settings') {
                 // 선택 전으로 되돌리고 모달 열기
-                document.getElementById('periodSelect').value = currentFilters.period || '12';
+                document.getElementById('periodSelect').value = currentFilters.period || '3';
                 openFilterModal('기간');
                 return;
             }
-            // 기간이 바뀌면 → 해당 기간의 API 데이터 재수집
-            // 기간이 바뀌면 피고 날자 범위 다시 계산
+            // 기간이 바뀌면 → 현재 로컬 데이터를 기간 필터링으로 즉시 렌더 (API는 백그라운드)
             currentFilters.dateRange = null; // 상세설정 초기화
             currentFilters.period = val;
-            await fetchAPIData(val);
-            render();
+            render(); // 로컬 데이터로 즉시 렌더
+            // 백그라운드에서 API 재수집 시도
+            fetchAPIData(val).then(apiOk => {
+                if (apiOk) render();
+            }).catch(() => { hideLoading(); });
         }
 
         // ─── Main render ───
@@ -1109,16 +1108,18 @@
                             ? Math.round(amts[i] / 1e6) + '백만'
                             : '-';
                 const labelStr = MONTH_KR[month - 1];
-                const yearStr = year !== thisYear ? ("'" + String(year).slice(2) + ' ') : '';
+                // 차트에 여러 연도가 섞이면 모든 달에 연도 표시 ('25 12월, '26 1월)
+                const hasMultiYear = buckets.some(b => b.year !== thisYear);
+                const yearStr = hasMultiYear ? ("'" + String(year).slice(2) + ' ') : '';
 
                 // 막대 HTML 문자열을 일반 문자열 연결로 생성 (템플릿 리터럴 중첩 방지)
                 var cntLabel = cnts[i] > 0
-                    ? '<div class="absolute left-0 right-0 text-center" style="bottom:calc(' + cntH + '% + 3px);pointer-events:none">'
-                    + '<span class="text-[8px] text-primary font-bold leading-none">' + cnts[i].toLocaleString() + '</span></div>'
+                    ? '<div class="absolute left-0 right-0 text-center" style="bottom:calc(' + cntH + '% + 4px);pointer-events:none">'
+                    + '<span style="font-size:12px;font-weight:700;color:#60a5fa;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,.8)">' + cnts[i].toLocaleString() + '</span></div>'
                     : '';
                 var amtLabelHtml = amts[i] > 0
-                    ? '<div class="absolute left-0 right-0 text-center" style="bottom:calc(' + amtH + '% + 3px);pointer-events:none">'
-                    + '<span class="text-[8px] text-emerald-400 font-bold leading-none">' + amtLabel + '</span></div>'
+                    ? '<div class="absolute left-0 right-0 text-center" style="bottom:calc(' + amtH + '% + 4px);pointer-events:none">'
+                    + '<span style="font-size:12px;font-weight:700;color:#34d399;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,.8)">' + amtLabel + '</span></div>'
                     : '';
 
                 return '<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;height:100%">'
@@ -1224,12 +1225,12 @@
             const cMax = topCats[0]?.[1] || 1;
             const gradients = ['from-blue-600 to-primary', 'from-purple-600 to-purple-400', 'from-primary/70 to-primary/50', 'from-primary/50 to-primary/30', 'from-primary/30 to-primary/20'];
             document.getElementById('topCatChart').innerHTML = topCats.map(([k, v], i) => `
-                    < div class="space-y-1" >
+                    <div class="space-y-1">
             <div class="flex justify-between text-sm"><span class="text-white font-medium">${k}</span><span class="text-white font-bold">${v}건</span></div>
             <div class="h-3 w-full rounded-full bg-[#283039] overflow-hidden">
                 <div class="h-full rounded-full bg-gradient-to-r ${gradients[i]} transition-all duration-700" style="width:${Math.round(v / cMax * 100)}%"></div>
             </div>
-        </div > `).join('');
+        </div> `).join('');
 
             const clients = {};
             data.forEach(r => { const c = extractClient(r.적격평가세부기준); clients[c] = (clients[c] || 0) + 1; });
@@ -1237,12 +1238,12 @@
             const rMax = topClients[0]?.[1] || 1;
             const pGradients = ['from-purple-600 to-purple-400', 'from-purple-500 to-purple-300', 'from-purple-400/80 to-purple-200/80', 'from-purple-400/60 to-purple-200/60', 'from-purple-400/40 to-purple-200/40'];
             document.getElementById('topClientChart').innerHTML = topClients.map(([k, v], i) => `
-                    < div class="space-y-1" >
+                    <div class="space-y-1">
             <div class="flex justify-between text-sm"><span class="text-white font-medium">${k}</span><span class="text-white font-bold">${v}건</span></div>
             <div class="h-3 w-full rounded-full bg-[#283039] overflow-hidden">
                 <div class="h-full rounded-full bg-gradient-to-r ${pGradients[i]} transition-all duration-700" style="width:${Math.round(v / rMax * 100)}%"></div>
             </div>
-        </div > `).join('');
+        </div> `).join('');
         }
 
         // ─── Filter Modal ───
@@ -1316,16 +1317,16 @@
 
         function renderClientPanel() {
             const sel = tempFilters.clients || [];
-            const html = `< div class="grid grid-cols-2 gap-0 p-2" > ` +
+            const html = `<div class="grid grid-cols-2 gap-0 p-2"> ` +
                 CLIENT_LIST.map(name => {
                     const isChecked = sel.includes(name);
                     const ne = name.replace(/'/g, "\\'");
-                    return `< div onclick = "toggleClientItem('${ne}')" class="flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all hover:bg-[#283039] ${isChecked ? 'bg-primary/5' : ''}" >
+                    return `<div onclick="toggleClientItem('${ne}')" class="flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all hover:bg-[#283039] ${isChecked ? 'bg-primary/5' : ''}" >
                     <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation();toggleClientItem('${ne}')" class="w-3.5 h-3.5 accent-primary cursor-pointer flex-shrink-0">
                         <span class="text-sm ${isChecked ? 'text-primary font-medium' : 'text-[#9dabb9]'} truncate">${name}</span>
                     </div>`;
                 }).join('') +
-                `</div > `;
+                `</div> `;
             document.getElementById('clientList').innerHTML = html;
             updateSelectedTags();
         }
@@ -1451,10 +1452,10 @@
             const sel = currentTab === '특수실적' ? (tempFilters.specialOnly ? ['특수실적 있음'] : []) : (tempFilters[key] || []);
             document.getElementById('filterChipGrid').innerHTML = items.map(item => {
                 const active = sel.includes(item);
-                return `< div onclick = "toggleChip('${item}')" class="filter-chip${active ? ' active' : ''}" >
+                return `<div onclick="toggleChip('${item}')" class="filter-chip${active ? ' active' : ''}" >
                     <span>${item}</span>
             ${active ? '<span class="material-symbols-outlined text-[16px]">check_circle</span>' : ''}
-        </div > `;
+        </div> `;
             }).join('');
             renderSearchResults();
             updateSelectedCount();
@@ -1505,8 +1506,8 @@
             panel.style.maxHeight = '200px';
 
             if (!results.length) {
-                panel.innerHTML = `< div class="flex items-center justify-center gap-2 py-4 text-[#5e6c7c] text-xs" >
-                    <span class="material-symbols-outlined text-[20px]">search_off</span>'<span class="text-primary">${q}</span>' 결과 없음</div > `;
+                panel.innerHTML = `<div class="flex items-center justify-center gap-2 py-4 text-[#5e6c7c] text-xs" >
+                    <span class="material-symbols-outlined text-[20px]">search_off</span>'<span class="text-primary">${q}</span>' 결과 없음</div> `;
                 return;
             }
 

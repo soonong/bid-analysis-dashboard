@@ -129,7 +129,7 @@ for row in clean_data:
         parts.append(f"{key}: {to_js_value(row[key])}")
     lines.append("    { " + ", ".join(parts) + " }")
 
-js_array = "let RAW_DATA = [\n" + ",\n".join(lines) + "\n];\n"
+js_array = "var RAW_DATA = [\n" + ",\n".join(lines) + "\n];\n"
 
 # ── 헬퍼 코드 (data.js 하단 공통) ────────────────────────
 helper_code = '''
