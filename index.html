@@ -134,6 +134,12 @@
 
                                 <!-- 구분선 -->
                                 <div class="w-px h-7 bg-slate-200"></div>
+                                <!-- CSV 다운로드 버튼 -->
+                                <button onclick="downloadCSV()" data-html2canvas-ignore
+                                    class="flex items-center gap-1.5 px-3 py-2 text-sm font-bold text-slate-600 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 transition-all shadow-sm">
+                                    <span class="material-symbols-outlined text-[18px]">download</span>
+                                    CSV
+                                </button>
                                 <!-- 상세설정 버튼 — 색상으로 명확히 구분 -->
                                 <button onclick="openFilterModal()" data-html2canvas-ignore
                                     class="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-primary border border-primary/30 bg-primary/10 rounded-lg hover:bg-primary/20 hover:border-primary/60 transition-all shadow-sm">
@@ -1104,6 +1110,46 @@
             currentFilters.dateRange = null;
             currentFilters.period = m.toString();
             render();
+        }
+
+        async function downloadCSV() {
+            if (!window.lastFilteredData || window.lastFilteredData.length === 0) {
+                alert('다운로드할 데이터가 없습니다.');
+                return;
+            }
+
+            const data = window.lastFilteredData;
+            const headers = Object.keys(data[0]);
+
+            // CSV 내용 구성
+            let csvContent = headers.join(',') + '\n';
+            data.forEach(row => {
+                let rowContent = headers.map(header => {
+                    let cell = row[header] === null || row[header] === undefined ? '' : row[header].toString();
+                    // 콤마나 개행이 포함된 경우 따옴표 처리
+                    if (cell.includes(',') || cell.includes('\n') || cell.includes('"')) {
+                        cell = `"${cell.replace(/"/g, '""')}"`;
+                    }
+                    return cell;
+                }).join(',');
+                csvContent += rowContent + '\n';
+            });
+
+            // 한글 깨점 방지를 위한 BOM 추가 (UTF-8)
+            const BOM = '\uFEFF';
+            const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+
+            link.setAttribute('href', url);
+            link.setAttribute('download', `공공입찰_데이터_근거자료_${dateStr}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         async function downloadPDF() {
